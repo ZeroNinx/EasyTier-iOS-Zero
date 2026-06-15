@@ -82,7 +82,7 @@ struct SettingsView<Manager: NetworkExtensionManagerProtocol>: View {
                         sharedDefaults.synchronize()
                     }
                 },
-                secondaryButton: .cancel(),
+                secondaryButton: .cancel()
             )
         }
 #if os(iOS)
@@ -379,7 +379,7 @@ struct SettingsView<Manager: NetworkExtensionManagerProtocol>: View {
     }
 }
 
-#if DEBUG
+#if DEBUG && compiler(>=5.9)
 #Preview("Settings Portrait") {
     let manager = MockNEManager()
     SettingsView(manager: manager)

@@ -135,7 +135,7 @@ struct LogView: View {
     }
 }
 
-#if DEBUG
+#if DEBUG && compiler(>=5.9)
 #Preview("Log") {
     LogView()
 }

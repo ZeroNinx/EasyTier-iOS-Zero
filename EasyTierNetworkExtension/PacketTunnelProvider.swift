@@ -165,7 +165,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
                     }
                 } else {
                     logger.error("handleRunningInfoChanged() no available tun fd")
-                    notifyHostAppError("no available tun fd")
+                    self.notifyHostAppError("no available tun fd")
                 }
             }
             logger.info("applyNetworkSettings() settings applied")
@@ -271,4 +271,4 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 }
 
-extension String: @retroactive Error {}
+extension String: Error {}

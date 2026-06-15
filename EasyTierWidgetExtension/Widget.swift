@@ -186,7 +186,7 @@ extension View {
     }
 }
 
-#if DEBUG
+#if DEBUG && compiler(>=5.9)
 @available(iOS 17.0, macOS 14.0, *)
 #Preview(
     "Connected",

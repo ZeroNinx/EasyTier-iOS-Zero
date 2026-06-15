@@ -79,30 +79,30 @@ class NetworkExtensionManager: NetworkExtensionManagerProtocol {
                 object: manager.connection,
                 queue: .main
             ) { [weak self] notification in
-                nonisolated(unsafe) let connection = notification.object as? NEVPNConnection
-                MainActor.assumeIsolated {
-                    guard let self else {
-                        return
-                    }
-                    self.connection = connection
-                    self.status = self.connection?.status ?? .invalid
-                    self.connectedDate = self.connection?.connectedDate
-                    if self.status == .invalid {
-                        self.manager = nil
-                    }
-                    
-                    // Sync VPN connection status to App Group for Control Widget
-                    self.syncWidgetState()
+                let connection = notification.object as? NEVPNConnection
+                guard let self else {
+                    return
                 }
+                self.connection = connection
+                self.status = self.connection?.status ?? .invalid
+                self.connectedDate = self.connection?.connectedDate
+                if self.status == .invalid {
+                    self.manager = nil
+                }
+
+                // Sync VPN connection status to App Group for Control Widget
+                self.syncWidgetState()
             }
         }
     }
     
     // Notify Control Widget to refresh its state
     private func syncWidgetState() {
+        #if compiler(>=5.10)
         if #available(iOS 18.0, macOS 26.0, *) {
             ControlCenter.shared.reloadControls(ofKind: "\(APP_BUNDLE_ID).control")
         }
+        #endif
         WidgetCenter.shared.reloadTimelines(ofKind: "\(APP_BUNDLE_ID).widget")
     }
     
@@ -451,7 +451,7 @@ class MockNEManager: NetworkExtensionManagerProtocol {
             stunInfo: NetworkStatus.STUNInfo(udpNATType: .symmetricEasyInc, tcpNATType: .fullCone, lastUpdateTime: Date().timeIntervalSince1970 - 10),
             listeners: [NetworkStatus.Url(url: "tcp://0.0.0.0:11010"), NetworkStatus.Url(url: "udp://0.0.0.0:11010")],
             vpnPortalCfg: "[Interface]\nPrivateKey = [REDACTED]\nAddress = 10.144.144.1/24\nListenPort = 22022\n\n[Peer]\nPublicKey = [REDACTED]\nAllowedIPs = 10.144.144.2/32",
-            peerID: 114514,
+            peerID: 114514
         )
         
         let peerRoute1 = NetworkStatus.Route(peerId: 123, ipv4Addr: .init(address: .init("10.144.144.10")!, networkLength: 24), nextHopPeerId: 123, cost: 1, pathLatency: 8, proxyCIDRs: [], hostname: "peer-1-ubuntu", stunInfo: NetworkStatus.STUNInfo(udpNATType: .fullCone, tcpNATType: .symmetric, lastUpdateTime: Date().timeIntervalSince1970 - 20), instId: id, version: "0.10.0")

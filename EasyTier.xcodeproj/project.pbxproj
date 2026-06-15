@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 56;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -11,6 +11,39 @@
 		0526D7B32F17656B00968CE2 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0526D7822F1762C300968CE2 /* Localizable.xcstrings */; };
 		0526D84A2F17D9AA00968CE2 /* libEasyTierShared.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0526D8422F17D98E00968CE2 /* libEasyTierShared.a */; };
 		0526D84B2F17E55300968CE2 /* libEasyTierShared.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0526D8422F17D98E00968CE2 /* libEasyTierShared.a */; };
+		054000102F30000000000000 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000202F30000000000000 /* ContentView.swift */; };
+		054000112F30000000000000 /* EasyTierApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000212F30000000000000 /* EasyTierApp.swift */; };
+		054000122F30000000000000 /* AdaptiveNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000222F30000000000000 /* AdaptiveNavigation.swift */; };
+		054000132F30000000000000 /* IPv4Field.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000232F30000000000000 /* IPv4Field.swift */; };
+		054000142F30000000000000 /* ListEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000242F30000000000000 /* ListEditor.swift */; };
+		054000152F30000000000000 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000252F30000000000000 /* ShareSheet.swift */; };
+		054000162F30000000000000 /* StatusSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000262F30000000000000 /* StatusSheet.swift */; };
+		054000172F30000000000000 /* TimelineLogPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000272F30000000000000 /* TimelineLogPanel.swift */; };
+		054000182F30000000000000 /* ConfigModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000282F30000000000000 /* ConfigModels.swift */; };
+		054000192F30000000000000 /* ProfileModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000292F30000000000000 /* ProfileModels.swift */; };
+		0540001A2F30000000000000 /* StatusModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540002A2F30000000000000 /* StatusModels.swift */; };
+		0540001B2F30000000000000 /* Compatibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540002B2F30000000000000 /* Compatibility.swift */; };
+		0540001C2F30000000000000 /* DarwinNotificationObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540002C2F30000000000000 /* DarwinNotificationObserver.swift */; };
+		0540001D2F30000000000000 /* LogTailer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540002D2F30000000000000 /* LogTailer.swift */; };
+		0540001E2F30000000000000 /* NetworkExtensionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540002E2F30000000000000 /* NetworkExtensionManager.swift */; };
+		0540001F2F30000000000000 /* ProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540002F2F30000000000000 /* ProfileStore.swift */; };
+		054000302F30000000000000 /* Shortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000402F30000000000000 /* Shortcuts.swift */; };
+		054000312F30000000000000 /* TextItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000412F30000000000000 /* TextItem.swift */; };
+		054000322F30000000000000 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000422F30000000000000 /* DashboardView.swift */; };
+		054000332F30000000000000 /* LogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000432F30000000000000 /* LogView.swift */; };
+		054000342F30000000000000 /* NetworkEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000442F30000000000000 /* NetworkEditView.swift */; };
+		054000352F30000000000000 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000452F30000000000000 /* SettingsView.swift */; };
+		054000362F30000000000000 /* StatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000462F30000000000000 /* StatusView.swift */; };
+		054000372F30000000000000 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 054000472F30000000000000 /* Assets.xcassets */; };
+		054000382F30000000000000 /* EasyTierShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000482F30000000000000 /* EasyTierShared.swift */; };
+		054000392F30000000000000 /* AddressHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000492F30000000000000 /* AddressHelper.swift */; };
+		0540003A2F30000000000000 /* BuilderHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540004A2F30000000000000 /* BuilderHelper.swift */; };
+		0540003B2F30000000000000 /* InfoModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540004B2F30000000000000 /* InfoModels.swift */; };
+		0540003C2F30000000000000 /* OSLogExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540004C2F30000000000000 /* OSLogExporter.swift */; };
+		0540003D2F30000000000000 /* PacketTunnelProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540004D2F30000000000000 /* PacketTunnelProvider.swift */; };
+		0540003E2F30000000000000 /* TunnelHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540004E2F30000000000000 /* TunnelHelper.swift */; };
+		0540003F2F30000000000000 /* ControlWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540004F2F30000000000000 /* ControlWidget.swift */; };
+		054000502F30000000000000 /* Widget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000602F30000000000000 /* Widget.swift */; };
 		055836312F04D26700139811 /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 055836302F04D26700139811 /* NetworkExtension.framework */; };
 		055836392F04D26700139811 /* EasyTierNetworkExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0558362E2F04D26600139811 /* EasyTierNetworkExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		059A7D6A2F9C966E001778FC /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 059A7D692F9C966E001778FC /* SystemConfiguration.framework */; };
@@ -69,7 +102,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				7A59B82E2F1641110069728D /* EasyTierWidgetExtension.appex in Embed Foundation Extensions */,
 				055836392F04D26700139811 /* EasyTierNetworkExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
@@ -85,68 +117,48 @@
 		055836302F04D26700139811 /* NetworkExtension.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkExtension.framework; path = System/Library/Frameworks/NetworkExtension.framework; sourceTree = SDKROOT; };
 		058E57A42F20AFD800BE84F9 /* lib.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = lib.rs; sourceTree = "<group>"; };
 		058EB1C12F20AFD800BE84F9 /* Cargo.toml */ = {isa = PBXFileReference; lastKnownFileType = text; path = Cargo.toml; sourceTree = "<group>"; };
-		059A7D692F9C966E001778FC /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.4.sdk/System/Library/Frameworks/SystemConfiguration.framework; sourceTree = DEVELOPER_DIR; };
+		054000202F30000000000000 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		054000212F30000000000000 /* EasyTierApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyTierApp.swift; sourceTree = "<group>"; };
+		054000222F30000000000000 /* AdaptiveNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/AdaptiveNavigation.swift; sourceTree = "<group>"; };
+		054000232F30000000000000 /* IPv4Field.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/IPv4Field.swift; sourceTree = "<group>"; };
+		054000242F30000000000000 /* ListEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/ListEditor.swift; sourceTree = "<group>"; };
+		054000252F30000000000000 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/ShareSheet.swift; sourceTree = "<group>"; };
+		054000262F30000000000000 /* StatusSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/StatusSheet.swift; sourceTree = "<group>"; };
+		054000272F30000000000000 /* TimelineLogPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/TimelineLogPanel.swift; sourceTree = "<group>"; };
+		054000282F30000000000000 /* ConfigModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/ConfigModels.swift; sourceTree = "<group>"; };
+		054000292F30000000000000 /* ProfileModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/ProfileModels.swift; sourceTree = "<group>"; };
+		0540002A2F30000000000000 /* StatusModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/StatusModels.swift; sourceTree = "<group>"; };
+		0540002B2F30000000000000 /* Compatibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils/Compatibility.swift; sourceTree = "<group>"; };
+		0540002C2F30000000000000 /* DarwinNotificationObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils/DarwinNotificationObserver.swift; sourceTree = "<group>"; };
+		0540002D2F30000000000000 /* LogTailer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils/LogTailer.swift; sourceTree = "<group>"; };
+		0540002E2F30000000000000 /* NetworkExtensionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils/NetworkExtensionManager.swift; sourceTree = "<group>"; };
+		0540002F2F30000000000000 /* ProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils/ProfileStore.swift; sourceTree = "<group>"; };
+		054000402F30000000000000 /* Shortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils/Shortcuts.swift; sourceTree = "<group>"; };
+		054000412F30000000000000 /* TextItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils/TextItem.swift; sourceTree = "<group>"; };
+		054000422F30000000000000 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/DashboardView.swift; sourceTree = "<group>"; };
+		054000432F30000000000000 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/LogView.swift; sourceTree = "<group>"; };
+		054000442F30000000000000 /* NetworkEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/NetworkEditView.swift; sourceTree = "<group>"; };
+		054000452F30000000000000 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/SettingsView.swift; sourceTree = "<group>"; };
+		054000462F30000000000000 /* StatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/StatusView.swift; sourceTree = "<group>"; };
+		054000472F30000000000000 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		054000482F30000000000000 /* EasyTierShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyTierShared.swift; sourceTree = "<group>"; };
+		054000492F30000000000000 /* AddressHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressHelper.swift; sourceTree = "<group>"; };
+		0540004A2F30000000000000 /* BuilderHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuilderHelper.swift; sourceTree = "<group>"; };
+		0540004B2F30000000000000 /* InfoModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoModels.swift; sourceTree = "<group>"; };
+		0540004C2F30000000000000 /* OSLogExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSLogExporter.swift; sourceTree = "<group>"; };
+		0540004D2F30000000000000 /* PacketTunnelProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PacketTunnelProvider.swift; sourceTree = "<group>"; };
+		0540004E2F30000000000000 /* TunnelHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunnelHelper.swift; sourceTree = "<group>"; };
+		0540004F2F30000000000000 /* ControlWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlWidget.swift; sourceTree = "<group>"; };
+		054000602F30000000000000 /* Widget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Widget.swift; sourceTree = "<group>"; };
+		054000612F30000000000000 /* EasyTierNetworkExtension-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "EasyTierNetworkExtension-Bridging-Header.h"; sourceTree = "<group>"; };
+		054000622F30000000000000 /* easytier_ios.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = easytier_ios.h; sourceTree = "<group>"; };
+		054000632F30000000000000 /* kern_control.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = kern_control.h; sourceTree = "<group>"; };
+		059A7D692F9C966E001778FC /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 		05B61F5B2F05056D00646DDC /* libeasytier_ios.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libeasytier_ios.a; sourceTree = "<group>"; };
 		7A59B8192F1641100069728D /* EasyTierWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = EasyTierWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A59B81A2F1641100069728D /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		7A59B81C2F1641100069728D /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		0558363A2F04D26700139811 /* Exceptions for "EasyTierNetworkExtension" folder in "EasyTierNetworkExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 0558362D2F04D26600139811 /* EasyTierNetworkExtension */;
-		};
-		058FD0B82F1111A200580896 /* Exceptions for "EasyTier" folder in "EasyTier" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 051C6A0A2F03AB0000AF29B1 /* EasyTier */;
-		};
-		7A59B8322F1641110069728D /* Exceptions for "EasyTierWidgetExtension" folder in "EasyTierWidgetExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 7A59B8182F1641100069728D /* EasyTierWidgetExtension */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		051C6A0D2F03AB0000AF29B1 /* EasyTier */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				058FD0B82F1111A200580896 /* Exceptions for "EasyTier" folder in "EasyTier" target */,
-			);
-			path = EasyTier;
-			sourceTree = "<group>";
-		};
-		0526D8432F17D98E00968CE2 /* EasyTierShared */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = EasyTierShared;
-			sourceTree = "<group>";
-		};
-		055836322F04D26700139811 /* EasyTierNetworkExtension */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				0558363A2F04D26700139811 /* Exceptions for "EasyTierNetworkExtension" folder in "EasyTierNetworkExtension" target */,
-			);
-			path = EasyTierNetworkExtension;
-			sourceTree = "<group>";
-		};
-		7A59B81E2F1641100069728D /* EasyTierWidgetExtension */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				7A59B8322F1641110069728D /* Exceptions for "EasyTierWidgetExtension" folder in "EasyTierWidgetExtension" target */,
-			);
-			path = EasyTierWidgetExtension;
-			sourceTree = "<group>";
-		};
-/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		051C6A082F03AB0000AF29B1 /* Frameworks */ = {
@@ -243,6 +255,70 @@
 			path = Core;
 			sourceTree = "<group>";
 		};
+		051C6A0D2F03AB0000AF29B1 /* EasyTier */ = {
+			isa = PBXGroup;
+			children = (
+				054000472F30000000000000 /* Assets.xcassets */,
+				054000202F30000000000000 /* ContentView.swift */,
+				054000212F30000000000000 /* EasyTierApp.swift */,
+				054000222F30000000000000 /* AdaptiveNavigation.swift */,
+				054000232F30000000000000 /* IPv4Field.swift */,
+				054000242F30000000000000 /* ListEditor.swift */,
+				054000252F30000000000000 /* ShareSheet.swift */,
+				054000262F30000000000000 /* StatusSheet.swift */,
+				054000272F30000000000000 /* TimelineLogPanel.swift */,
+				054000282F30000000000000 /* ConfigModels.swift */,
+				054000292F30000000000000 /* ProfileModels.swift */,
+				0540002A2F30000000000000 /* StatusModels.swift */,
+				0540002B2F30000000000000 /* Compatibility.swift */,
+				0540002C2F30000000000000 /* DarwinNotificationObserver.swift */,
+				0540002D2F30000000000000 /* LogTailer.swift */,
+				0540002E2F30000000000000 /* NetworkExtensionManager.swift */,
+				0540002F2F30000000000000 /* ProfileStore.swift */,
+				054000402F30000000000000 /* Shortcuts.swift */,
+				054000412F30000000000000 /* TextItem.swift */,
+				054000422F30000000000000 /* DashboardView.swift */,
+				054000432F30000000000000 /* LogView.swift */,
+				054000442F30000000000000 /* NetworkEditView.swift */,
+				054000452F30000000000000 /* SettingsView.swift */,
+				054000462F30000000000000 /* StatusView.swift */,
+			);
+			path = EasyTier;
+			sourceTree = "<group>";
+		};
+		0526D8432F17D98E00968CE2 /* EasyTierShared */ = {
+			isa = PBXGroup;
+			children = (
+				054000482F30000000000000 /* EasyTierShared.swift */,
+			);
+			path = EasyTierShared;
+			sourceTree = "<group>";
+		};
+		055836322F04D26700139811 /* EasyTierNetworkExtension */ = {
+			isa = PBXGroup;
+			children = (
+				054000492F30000000000000 /* AddressHelper.swift */,
+				0540004A2F30000000000000 /* BuilderHelper.swift */,
+				054000612F30000000000000 /* EasyTierNetworkExtension-Bridging-Header.h */,
+				0540004B2F30000000000000 /* InfoModels.swift */,
+				0540004C2F30000000000000 /* OSLogExporter.swift */,
+				0540004D2F30000000000000 /* PacketTunnelProvider.swift */,
+				0540004E2F30000000000000 /* TunnelHelper.swift */,
+				054000622F30000000000000 /* easytier_ios.h */,
+				054000632F30000000000000 /* kern_control.h */,
+			);
+			path = EasyTierNetworkExtension;
+			sourceTree = "<group>";
+		};
+		7A59B81E2F1641100069728D /* EasyTierWidgetExtension */ = {
+			isa = PBXGroup;
+			children = (
+				0540004F2F30000000000000 /* ControlWidget.swift */,
+				054000602F30000000000000 /* Widget.swift */,
+			);
+			path = EasyTierWidgetExtension;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -259,10 +335,6 @@
 			);
 			dependencies = (
 				055836382F04D26700139811 /* PBXTargetDependency */,
-				7A59B82D2F1641110069728D /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				051C6A0D2F03AB0000AF29B1 /* EasyTier */,
 			);
 			name = EasyTier;
 			packageProductDependencies = (
@@ -283,9 +355,6 @@
 			buildRules = (
 			);
 			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				0526D8432F17D98E00968CE2 /* EasyTierShared */,
 			);
 			name = EasyTierShared;
 			packageProductDependencies = (
@@ -308,9 +377,6 @@
 			dependencies = (
 				0526D84D2F17E55300968CE2 /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				055836322F04D26700139811 /* EasyTierNetworkExtension */,
-			);
 			name = EasyTierNetworkExtension;
 			packageProductDependencies = (
 			);
@@ -331,9 +397,6 @@
 			dependencies = (
 				05CF11DC2F1A589D00E6EDF1 /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				7A59B81E2F1641100069728D /* EasyTierWidgetExtension */,
-			);
 			name = EasyTierWidgetExtension;
 			packageProductDependencies = (
 			);
@@ -348,20 +411,20 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2620;
-				LastUpgradeCheck = 2620;
+				LastSwiftUpdateCheck = 1420;
+				LastUpgradeCheck = 1420;
 				TargetAttributes = {
 					051C6A0A2F03AB0000AF29B1 = {
-						CreatedOnToolsVersion = 26.2;
+						CreatedOnToolsVersion = 14.2;
 					};
 					0526D8412F17D98E00968CE2 = {
-						CreatedOnToolsVersion = 26.2;
+						CreatedOnToolsVersion = 14.2;
 					};
 					0558362D2F04D26600139811 = {
-						CreatedOnToolsVersion = 26.2;
+						CreatedOnToolsVersion = 14.2;
 					};
 					7A59B8182F1641100069728D = {
-						CreatedOnToolsVersion = 26.0.1;
+						CreatedOnToolsVersion = 14.2;
 					};
 				};
 			};
@@ -373,11 +436,9 @@
 				Base,
 			);
 			mainGroup = 051C6A022F03AB0000AF29B1;
-			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				05B6235A2F08098100646DDC /* XCRemoteSwiftPackageReference "TOMLKit" */,
 			);
-			preferredProjectObjectVersion = 77;
 			productRefGroup = 051C6A0C2F03AB0000AF29B1 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -396,6 +457,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0526D7992F1762C300968CE2 /* Localizable.xcstrings in Resources */,
+				054000372F30000000000000 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -434,7 +496,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = ". \"$HOME/.cargo/env\"\nPATH=\"${HOME}/.local/bin:${PATH}\"\nif [ -f \"/opt/homebrew/bin/brew\" ]; then\n    eval \"$(/opt/homebrew/bin/brew shellenv)\"\nfi\n\ncd \"${PROJECT_DIR}/Core\"\n\nfor ARCH in ${ARCHS}\ndo\n    case \"${ARCH}\" in\n        \"arm64\")\n            PREFIX=\"aarch64\"\n            ;;\n        \"x86_64\")\n            PREFIX=\"x86_64\"\n            ;;\n        *)\n            echo \"Unknown arch: ${ARCHS}\"\n            exit -1\n            ;;\n    esac\n\n    case \"${PLATFORM_NAME}\" in\n        \"iphoneos\")\n            TARGET=\"$PREFIX-apple-ios\"\n            ;;\n        \"iphonesimulator\")\n            TARGET=\"$PREFIX-apple-ios-sim\"\n            ;;\n        \"macosx\")\n            TARGET=\"$PREFIX-apple-darwin\"\n            ;;\n        *)\n            echo \"Unknown platform: ${PLATFORM_NAME}\"\n            exit -1\n            ;;\n    esac\n\n    if [ \"${CONFIGURATION}\" = \"Debug\" ]; then\n        cargo build --target $TARGET\n    else\n        cargo build --target $TARGET --release\n    fi\ndone\n";
+			shellScript = ". \"$HOME/.cargo/env\"\nPATH=\"${HOME}/.local/bin:${PATH}\"\nif [ -f \"/opt/homebrew/bin/brew\" ]; then\n    eval \"$(/opt/homebrew/bin/brew shellenv)\"\nfi\n\ncd \"${PROJECT_DIR}/Core\"\n\nfor ARCH in ${ARCHS}\ndo\n    case \"${ARCH}\" in\n        \"arm64\")\n            PREFIX=\"aarch64\"\n            ;;\n        \"x86_64\")\n            PREFIX=\"x86_64\"\n            ;;\n        *)\n            echo \"Unknown arch: ${ARCHS}\"\n            exit -1\n            ;;\n    esac\n\n    case \"${PLATFORM_NAME}\" in\n        \"iphoneos\")\n            TARGET=\"$PREFIX-apple-ios\"\n            ;;\n        \"iphonesimulator\")\n            if [ \"${ARCH}\" = \"x86_64\" ]; then\n                TARGET=\"x86_64-apple-ios\"\n            else\n                TARGET=\"$PREFIX-apple-ios-sim\"\n            fi\n            ;;\n        \"macosx\")\n            TARGET=\"$PREFIX-apple-darwin\"\n            ;;\n        *)\n            echo \"Unknown platform: ${PLATFORM_NAME}\"\n            exit -1\n            ;;\n    esac\n\n    if [ \"${CONFIGURATION}\" = \"Debug\" ]; then\n        cargo build --target $TARGET\n    else\n        cargo build --target $TARGET --release\n    fi\ndone\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -443,6 +505,29 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				054000102F30000000000000 /* ContentView.swift in Sources */,
+				054000112F30000000000000 /* EasyTierApp.swift in Sources */,
+				054000122F30000000000000 /* AdaptiveNavigation.swift in Sources */,
+				054000132F30000000000000 /* IPv4Field.swift in Sources */,
+				054000142F30000000000000 /* ListEditor.swift in Sources */,
+				054000152F30000000000000 /* ShareSheet.swift in Sources */,
+				054000162F30000000000000 /* StatusSheet.swift in Sources */,
+				054000172F30000000000000 /* TimelineLogPanel.swift in Sources */,
+				054000182F30000000000000 /* ConfigModels.swift in Sources */,
+				054000192F30000000000000 /* ProfileModels.swift in Sources */,
+				0540001A2F30000000000000 /* StatusModels.swift in Sources */,
+				0540001B2F30000000000000 /* Compatibility.swift in Sources */,
+				0540001C2F30000000000000 /* DarwinNotificationObserver.swift in Sources */,
+				0540001D2F30000000000000 /* LogTailer.swift in Sources */,
+				0540001E2F30000000000000 /* NetworkExtensionManager.swift in Sources */,
+				0540001F2F30000000000000 /* ProfileStore.swift in Sources */,
+				054000302F30000000000000 /* Shortcuts.swift in Sources */,
+				054000312F30000000000000 /* TextItem.swift in Sources */,
+				054000322F30000000000000 /* DashboardView.swift in Sources */,
+				054000332F30000000000000 /* LogView.swift in Sources */,
+				054000342F30000000000000 /* NetworkEditView.swift in Sources */,
+				054000352F30000000000000 /* SettingsView.swift in Sources */,
+				054000362F30000000000000 /* StatusView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -450,6 +535,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				054000382F30000000000000 /* EasyTierShared.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -457,6 +543,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				054000392F30000000000000 /* AddressHelper.swift in Sources */,
+				0540003A2F30000000000000 /* BuilderHelper.swift in Sources */,
+				0540003B2F30000000000000 /* InfoModels.swift in Sources */,
+				0540003C2F30000000000000 /* OSLogExporter.swift in Sources */,
+				0540003D2F30000000000000 /* PacketTunnelProvider.swift in Sources */,
+				0540003E2F30000000000000 /* TunnelHelper.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -464,6 +556,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0540003F2F30000000000000 /* ControlWidget.swift in Sources */,
+				054000502F30000000000000 /* Widget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -756,7 +850,7 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 6.0;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -778,7 +872,7 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 6.0;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};
@@ -830,7 +924,7 @@
 				);
 				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*][arch=x86_64]" = (
 					"$(inherited)",
-					"${PROJECT_DIR}/Core/target/x86_64-apple-ios-sim/debug",
+					"${PROJECT_DIR}/Core/target/x86_64-apple-ios/debug",
 				);
 				"LIBRARY_SEARCH_PATHS[sdk=macosx*][arch=arm64]" = (
 					"$(inherited)",
@@ -908,7 +1002,7 @@
 				);
 				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*][arch=x86_64]" = (
 					"$(inherited)",
-					"${PROJECT_DIR}/Core/target/x86_64-apple-ios-sim/release",
+					"${PROJECT_DIR}/Core/target/x86_64-apple-ios/release",
 				);
 				"LIBRARY_SEARCH_PATHS[sdk=macosx*][arch=arm64]" = (
 					"$(inherited)",

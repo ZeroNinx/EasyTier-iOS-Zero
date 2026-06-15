@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct NetworkConfig: Codable {
+struct NetworkConfig: Codable {
     struct Flags: Codable, Equatable {
         var defaultProtocol: String?
         var devName: String?
@@ -252,7 +252,7 @@ nonisolated struct NetworkConfig: Codable {
             guard !cidrString.isEmpty else { return nil }
             return ProxyNetworkConfig(
                 cidr: cidrString,
-                mappedCIDR: cidr.enableMapping ? cidr.mappedCIDRString : nil,
+                mappedCIDR: cidr.enableMapping ? cidr.mappedCIDRString : nil
             )
         })
 
@@ -260,14 +260,14 @@ nonisolated struct NetworkConfig: Codable {
             PortForwardConfig(
                 bindAddr: "\($0.bindAddr):\($0.bindPort)",
                 dstAddr: "\($0.destAddr):\($0.destPort)",
-                proto: $0.proto,
+                proto: $0.proto
             )
         })
         
         if profile.enableVPNPortal {
             self.vpnPortalConfig = VPNPortalConfig(
                 clientCIDR: profile.vpnPortalClientCIDR.cidrString,
-                wireguardListen: "0.0.0.0:\(profile.vpnPortalListenPort)",
+                wireguardListen: "0.0.0.0:\(profile.vpnPortalListenPort)"
             )
         }
         

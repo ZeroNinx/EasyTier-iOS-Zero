@@ -164,93 +164,7 @@ struct PeerConnDetailSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                if let pair {
-                    Section("peer") {
-                        LabeledContent("hostname", value: pair.route.hostname)
-                        LabeledContent("peer_id", value: String(pair.route.peerId))
-                        if let ipv4 = pair.route.ipv4Addr {
-                            LabeledContent("ipv4_addr", value: ipv4.description)
-                        }
-                        if let ipv6 = pair.route.ipv6Addr {
-                            LabeledContent("ipv6_addr", value: ipv6.description)
-                        }
-                        LabeledContent("inst_id", value: String(pair.route.instId))
-                        LabeledContent("version", value: String(pair.route.version))
-                        LabeledContent("next_hop_peer_id", value: String(pair.route.nextHopPeerId))
-                        LabeledContent("cost", value: String(pair.route.cost))
-                        LabeledContent("path_latency", value: latencyValueString(pair.route.pathLatency))
-                        if let nextHopLatencyFirst = pair.route.nextHopPeerIdLatencyFirst {
-                            LabeledContent("next_hop_peer_id_latency_first", value: String(nextHopLatencyFirst))
-                        }
-                        if let costLatencyFirst = pair.route.costLatencyFirst {
-                            LabeledContent("cost_latency_first", value: String(costLatencyFirst))
-                        }
-                        if let pathLatencyLatencyFirst = pair.route.pathLatencyLatencyFirst {
-                            LabeledContent("path_latency_latency_first", value: latencyValueString(pathLatencyLatencyFirst))
-                        }
-                        if let featureFlags = pair.route.featureFlag {
-                            LabeledContent("feature_flag", value: featureFlagString(featureFlags))
-                        }
-                        if let peerInfo = pair.peer {
-                            if let defaultConnId = peerInfo.defaultConnId {
-                                LabeledContent("default_conn_id", value: uuidString(defaultConnId))
-                            }
-                            if !peerInfo.directlyConnectedConns.isEmpty {
-                                LabeledContent(
-                                    "directly_connected_conns",
-                                    value: peerInfo.directlyConnectedConns.map(uuidString).sorted().joined(separator: "\n")
-                                )
-                            }
-                        }
-                    }
-
-                    if !pair.route.proxyCIDRs.isEmpty {
-                        Section("proxy_cidrs") {
-                            ForEach(pair.route.proxyCIDRs, id: \.hashValue) {
-                                Text($0)
-                            }
-                        }
-                    }
-
-                    if conns.isEmpty {
-                        Section("connections") {
-                            Text("no_connection_details_available")
-                                .foregroundStyle(.secondary)
-                        }
-                    } else {
-                        ForEach(conns, id: \.connId) { conn in
-                            Section("connection_\(conn.connId)") {
-                                LabeledContent("peer_id", value: String(conn.peerId))
-                                LabeledContent("role", value: conn.isClient ? "Client" : "Server")
-                                LabeledContent("loss_rate", value: percentString(conn.lossRate))
-                                LabeledContent("closed", value: triState(conn.isClosed))
-
-                                LabeledContent("features", value: conn.features.isEmpty ? "None" : conn.features.joined(separator: ", "))
-
-                                if let tunnel = conn.tunnel {
-                                    LabeledContent("tunnel_type", value: tunnel.tunnelType.uppercased())
-                                    LabeledContent("local_addr", value: tunnel.localAddr.url)
-                                    LabeledContent("remote_addr", value: tunnel.remoteAddr.url)
-                                }
-
-                                if let stats = conn.stats {
-                                    LabeledContent("rx_bytes", value: formatBytes(stats.rxBytes))
-                                    LabeledContent("tx_bytes", value: formatBytes(stats.txBytes))
-                                    LabeledContent("rx_packets", value: String(stats.rxPackets))
-                                    LabeledContent("tx_packets", value: String(stats.txPackets))
-                                    LabeledContent("latency", value: latencyString(stats.latencyUs))
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    Section {
-                        Text("no_peer_information_available")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
+            content
             .textSelection(.enabled)
             .navigationTitle("peer_details")
             .adaptiveNavigationBarTitleInline()
@@ -261,6 +175,122 @@ struct PeerConnDetailSheet: View {
                         dismiss()
                     } label: {
                         Image(systemName: "xmark")
+                    }
+                }
+            }
+        }
+    }
+
+    private var content: some View {
+        Form {
+            if let pair {
+                peerSection(pair)
+                proxyCIDRSection(pair)
+                connectionSections
+            } else {
+                Section {
+                    Text("no_peer_information_available")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private func peerSection(_ pair: NetworkStatus.PeerRoutePair) -> some View {
+        let rows = peerRows(pair)
+        return Section("peer") {
+            ForEach(rows.indices, id: \.self) { index in
+                detailRow(rows[index].label, rows[index].value)
+            }
+        }
+    }
+
+    private func peerRows(_ pair: NetworkStatus.PeerRoutePair) -> [(label: LocalizedStringKey, value: String)] {
+        var rows: [(label: LocalizedStringKey, value: String)] = [
+            ("hostname", pair.route.hostname),
+            ("peer_id", String(pair.route.peerId)),
+            ("inst_id", String(pair.route.instId)),
+            ("version", String(pair.route.version)),
+            ("next_hop_peer_id", String(pair.route.nextHopPeerId)),
+            ("cost", String(pair.route.cost)),
+            ("path_latency", latencyValueString(pair.route.pathLatency))
+        ]
+        if let ipv4 = pair.route.ipv4Addr {
+            rows.insert(("ipv4_addr", ipv4.description), at: 2)
+        }
+        if let ipv6 = pair.route.ipv6Addr {
+            rows.insert(("ipv6_addr", ipv6.description), at: min(3, rows.count))
+        }
+        if let nextHopLatencyFirst = pair.route.nextHopPeerIdLatencyFirst {
+            rows.append(("next_hop_peer_id_latency_first", String(nextHopLatencyFirst)))
+        }
+        if let costLatencyFirst = pair.route.costLatencyFirst {
+            rows.append(("cost_latency_first", String(costLatencyFirst)))
+        }
+        if let pathLatencyLatencyFirst = pair.route.pathLatencyLatencyFirst {
+            rows.append(("path_latency_latency_first", latencyValueString(pathLatencyLatencyFirst)))
+        }
+        if let featureFlags = pair.route.featureFlag {
+            rows.append(("feature_flag", featureFlagString(featureFlags)))
+        }
+        if let peerInfo = pair.peer {
+            if let defaultConnId = peerInfo.defaultConnId {
+                rows.append(("default_conn_id", uuidString(defaultConnId)))
+            }
+            if !peerInfo.directlyConnectedConns.isEmpty {
+                rows.append(("directly_connected_conns", peerInfo.directlyConnectedConns.map(uuidString).sorted().joined(separator: "\n")))
+            }
+        }
+        return rows
+    }
+
+    private func detailRow(_ label: LocalizedStringKey, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label)
+            Spacer()
+            Text(value)
+                .multilineTextAlignment(.trailing)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private func proxyCIDRSection(_ pair: NetworkStatus.PeerRoutePair) -> some View {
+        if !pair.route.proxyCIDRs.isEmpty {
+            Section("proxy_cidrs") {
+                ForEach(pair.route.proxyCIDRs, id: \.hashValue) {
+                    Text($0)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var connectionSections: some View {
+        if conns.isEmpty {
+            Section("connections") {
+                Text("no_connection_details_available")
+                    .foregroundStyle(.secondary)
+            }
+        } else {
+            ForEach(conns, id: \.connId) { conn in
+                Section("connection_\(conn.connId)") {
+                    LabeledContent("peer_id", value: String(conn.peerId))
+                    LabeledContent("role", value: conn.isClient ? "Client" : "Server")
+                    LabeledContent("loss_rate", value: percentString(conn.lossRate))
+                    LabeledContent("closed", value: triState(conn.isClosed))
+                    LabeledContent("features", value: conn.features.isEmpty ? "None" : conn.features.joined(separator: ", "))
+                    if let tunnel = conn.tunnel {
+                        LabeledContent("tunnel_type", value: tunnel.tunnelType.uppercased())
+                        LabeledContent("local_addr", value: tunnel.localAddr.url)
+                        LabeledContent("remote_addr", value: tunnel.remoteAddr.url)
+                    }
+                    if let stats = conn.stats {
+                        LabeledContent("rx_bytes", value: formatBytes(stats.rxBytes))
+                        LabeledContent("tx_bytes", value: formatBytes(stats.txBytes))
+                        LabeledContent("rx_packets", value: String(stats.rxPackets))
+                        LabeledContent("tx_packets", value: String(stats.txPackets))
+                        LabeledContent("latency", value: latencyString(stats.latencyUs))
                     }
                 }
             }

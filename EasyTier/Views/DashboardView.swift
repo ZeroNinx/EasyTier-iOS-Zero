@@ -266,13 +266,8 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
             .alert("add_new_network", isPresented: $showNewNetworkAlert) {
                 TextField("config_name", text: $newNetworkInput)
                     .adaptiveNoTextInputAutocapitalization()
-                if #available(iOS 26.0, macOS 26.0, *) {
-                    Button(role: .cancel) {}
-                    Button("network.create", role: .confirm, action: createProfile)
-                } else {
-                    Button("common.cancel") {}
-                    Button("network.create", action: createProfile)
-                }
+                Button("common.cancel") {}
+                Button("network.create", action: createProfile)
             }
             .alert("edit_config_name", isPresented: $showEditConfigNameAlert) {
                 TextField("config_name", text: $editConfigNameInput)
@@ -289,10 +284,12 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
         NavigationStack {
             mainView
                 .navigationTitle(selectedSession.session?.name ?? String(localized: "select_network"))
-            .toolbar {
-                ToolbarItem(placement: ToolbarLeading) {
-                    Button("select_network", systemImage: "chevron.up.chevron.down") {
+                .toolbar {
+                    ToolbarItem(placement: ToolbarLeading) {
+                    Button {
                         showManageSheet = true
+                    } label: {
+                        Label("select_network", systemImage: "chevron.up.chevron.down")
                     }
                     .disabled(isPending || isConnected)
                 }
@@ -328,7 +325,7 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
                     .buttonStyle(.plain)
 #endif
                     .foregroundStyle(isConnected ? Color.red : Color.accentColor)
-                    .animation(.interactiveSpring, value: [isConnected, isPending])
+                    .animation(.interactiveSpring(), value: [isConnected, isPending])
                 }
             }
         }
@@ -745,7 +742,7 @@ struct IdentifiableURL: Identifiable {
 }
 
 
-#if DEBUG
+#if DEBUG && compiler(>=5.9)
 #Preview("Dashboard") {
     let manager = MockNEManager()
     let selectedSession = SelectedProfileSession()

@@ -8,7 +8,7 @@ struct BoolFlag: Identifiable {
     let help: LocalizedStringKey?
 }
 
-nonisolated struct NetworkProfile: Identifiable, Equatable {
+struct NetworkProfile: Identifiable, Equatable {
     struct PortForwardSetting: Codable, Hashable, Identifiable {
         var id = UUID()
         var bindAddr: String = ""
@@ -25,9 +25,9 @@ nonisolated struct NetworkProfile: Identifiable, Equatable {
         
         var cidrString: String {
             if ip.isEmpty && length.isEmpty {
-                ""
+                return ""
             } else {
-                "\(ip)/\(length)"
+                return "\(ip)/\(length)"
             }
         }
     }
@@ -41,17 +41,17 @@ nonisolated struct NetworkProfile: Identifiable, Equatable {
         
         var cidrString: String {
             if cidr.isEmpty || length.isEmpty {
-                ""
+                return ""
             } else {
-                "\(cidr)/\(length)"
+                return "\(cidr)/\(length)"
             }
         }
         
         var mappedCIDRString: String {
             if mappedCIDR.isEmpty && length.isEmpty {
-                ""
+                return ""
             } else {
-                "\(mappedCIDR)/\(length)"
+                return "\(mappedCIDR)/\(length)"
             }
         }
     }
@@ -458,7 +458,7 @@ nonisolated struct NetworkProfile: Identifiable, Equatable {
     ]
 }
 
-nonisolated struct AlwaysEqual<T>: Equatable {
+struct AlwaysEqual<T>: Equatable {
     var value: T
     
     static func == (lhs: AlwaysEqual<T>, rhs: AlwaysEqual<T>) -> Bool {

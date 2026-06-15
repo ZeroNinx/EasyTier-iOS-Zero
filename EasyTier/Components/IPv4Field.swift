@@ -100,7 +100,6 @@ struct IPv4Field: View {
     }
 #endif
     
-    @MainActor
     private func setFocusedField(_ field: Int?) {
         focusedField = field
     }
@@ -172,8 +171,8 @@ struct IPv4Field: View {
     private func updateIPBinding() {
         self.ipAddress = octets.map {
             if let num = Int($0) {
-                String(max(min(num, 255), 0))
-            } else { "" }
+                return String(max(min(num, 255), 0))
+            } else { return "" }
         }.joined(separator: ".")
     }
 
@@ -197,8 +196,8 @@ struct IPv4Field: View {
 
             let parts = validIpChars.split(separator: ".").map {
                 if let num = Int($0) {
-                    String(max(min(num, 255), 0))
-                } else { "" }
+                    return String(max(min(num, 255), 0))
+                } else { return "" }
             }
             for (i, part) in parts.enumerated() {
                 if i < 4 { octets[i] = String(part.prefix(3)) }

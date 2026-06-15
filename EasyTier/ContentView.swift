@@ -79,7 +79,7 @@ struct ContentView<Manager: NetworkExtensionManagerProtocol>: View {
     }
 }
 
-#if DEBUG
+#if DEBUG && compiler(>=5.9)
 #Preview("Content") {
     let manager = MockNEManager()
     return ContentView(manager: manager)

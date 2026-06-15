@@ -1,8 +1,13 @@
 import SwiftUI
 
 #if os(iOS)
-    let ToolbarLeading = ToolbarItemPlacement.topBarLeading
-    let ToolbarTrailing = ToolbarItemPlacement.topBarTrailing
+    #if compiler(>=5.9)
+        let ToolbarLeading = ToolbarItemPlacement.topBarLeading
+        let ToolbarTrailing = ToolbarItemPlacement.topBarTrailing
+    #else
+        let ToolbarLeading = ToolbarItemPlacement.navigationBarLeading
+        let ToolbarTrailing = ToolbarItemPlacement.navigationBarTrailing
+    #endif
 #else
     let ToolbarLeading = ToolbarItemPlacement.navigation
     let ToolbarTrailing = ToolbarItemPlacement.primaryAction
@@ -41,4 +46,3 @@ extension View {
 #endif
     }
 }
-

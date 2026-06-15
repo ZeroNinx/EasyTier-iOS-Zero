@@ -15,7 +15,7 @@ struct StatusView<Manager: NetworkExtensionManagerProtocol>: View {
     @State var timer = Timer.publish(every: 1.0, on: .main, in: .common)
     @State var timerSubscription: Cancellable?
     @State var status: NetworkStatus?
-    
+
     @State var selectedInfoKind: InfoKind = .peerInfo
     @State var selectedPeerRoute: SelectedPeerRoute?
     @State var showNodeInfo = false
@@ -23,23 +23,23 @@ struct StatusView<Manager: NetworkExtensionManagerProtocol>: View {
     @State var showStunInfo = false
     @State var showNetworkSettings = false
     @State var lastNetworkSettings: TunnelNetworkSettingsSnapshot?
-    
+
     let networkName: String
-    
+
     init(_ name: String, manager: Manager) {
         networkName = name
         _manager = ObservedObject(wrappedValue: manager)
     }
-    
+
     enum InfoKind: Identifiable, CaseIterable {
         var id: Self { self }
         case peerInfo
         case eventLog
-        
+
         var description: LocalizedStringKey {
             switch self {
-            case .peerInfo: "peer_info"
-            case .eventLog: "event_log"
+            case .peerInfo: return "peer_info"
+            case .eventLog: return "event_log"
             }
         }
     }
@@ -101,7 +101,7 @@ struct StatusView<Manager: NetworkExtensionManagerProtocol>: View {
             NetworkSettingsSheet(settings: $lastNetworkSettings)
         }
     }
-    
+
     var singleColumn: some View {
         Form {
             Section("device.status") {
@@ -144,7 +144,7 @@ struct StatusView<Manager: NetworkExtensionManagerProtocol>: View {
         }
         .formStyle(.grouped)
     }
-    
+
     var doubleComlum: some View {
         HStack(spacing: 0) {
             Form {
@@ -161,7 +161,7 @@ struct StatusView<Manager: NetworkExtensionManagerProtocol>: View {
                         .foregroundStyle(.red)
                     }
                 }
-                
+
                 Section("peer_info") {
                     peerInfo
                 }
@@ -177,7 +177,7 @@ struct StatusView<Manager: NetworkExtensionManagerProtocol>: View {
             .formStyle(.grouped)
         }
     }
-    
+
     var localStatus: some View {
         Group {
             Button {
@@ -204,15 +204,15 @@ struct StatusView<Manager: NetworkExtensionManagerProtocol>: View {
                 .padding(.horizontal, 4)
             }
             .buttonStyle(.plain)
-            
+
             HStack(spacing: 42) {
                 TrafficItem(
                     trafficType: .Rx,
-                    value: (status?.sum(of: \.rxBytes)),
+                    value: (status?.sum(of: \.rxBytes))
                 )
                 TrafficItem(
                     trafficType: .Tx,
-                    value: (status?.sum(of: \.txBytes)),
+                    value: (status?.sum(of: \.txBytes))
                 )
             }
 
@@ -227,7 +227,7 @@ struct StatusView<Manager: NetworkExtensionManagerProtocol>: View {
                     )
                 }
                 .buttonStyle(.plain)
-                
+
                 Button {
                     showStunInfo = true
                 } label: {
@@ -241,7 +241,7 @@ struct StatusView<Manager: NetworkExtensionManagerProtocol>: View {
             }
         }
     }
-    
+
     var peerInfo: some View {
         Group {
             if let myNodeInfo = status?.myNodeInfo {
@@ -252,7 +252,7 @@ struct StatusView<Manager: NetworkExtensionManagerProtocol>: View {
                 }
                 .buttonStyle(.plain)
             }
-            
+
             ForEach(status?.peerRoutePairs ?? []) { pair in
                 Button {
                     selectedPeerRoute = SelectedPeerRoute(id: pair.id)
@@ -290,7 +290,7 @@ struct PeerRowView<RightView>: View where RightView: View {
     let firstLineText: String
     let secondLineText: String
     @ViewBuilder let rightView: () -> RightView
-    
+
     var body: some View {
         HStack(alignment: .center) {
             // Icon
@@ -314,12 +314,12 @@ struct PeerRowView<RightView>: View where RightView: View {
                     .font(.body)
                     .fontWeight(.medium)
                     .lineLimit(1)
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     if !firstLineText.isEmpty {
                         Text(firstLineText)
                     }
-                    
+
                     if !secondLineText.isEmpty {
                         Text(secondLineText)
                     }
@@ -340,45 +340,43 @@ struct PeerRowView<RightView>: View where RightView: View {
 
 struct LocalPeerRowView: View {
     let myNodeInfo: NetworkStatus.MyNodeInfo
-    
+
     var iconSystemName: String {
-#if os(iOS)
-        switch UIDevice.current.userInterfaceIdiom {
-        case .phone:
-            "iphone"
-        case .pad:
-            "ipad"
-        case .mac:
-            "macbook"
-        case .vision:
-            "vision.pro"
-        default:
-            "macmini"
-        }
-#else
-        "macbook"
-#endif
-    }
-    
-    var firstLineText: String {
-        if let id = myNodeInfo.peerID {
-            "ID: \(id)"
-        } else { "" }
-    }
-    
-    var secondLineText: String {
-        if let ip = myNodeInfo.virtualIPv4?.description {
-            "IP: \(ip)"
-        } else { "" }
-    }
-    
+	#if os(iOS)
+	        switch UIDevice.current.userInterfaceIdiom {
+	        case .phone:
+	            return "iphone"
+	        case .pad:
+	            return "ipad"
+	        case .mac:
+	            return "macbook"
+	        default:
+	            return "macmini"
+	        }
+	#else
+	        return "macbook"
+	#endif
+	    }
+
+	    var firstLineText: String {
+	        if let id = myNodeInfo.peerID {
+	            return "ID: \(id)"
+	        } else { return "" }
+	    }
+
+	    var secondLineText: String {
+	        if let ip = myNodeInfo.virtualIPv4?.description {
+	            return "IP: \(ip)"
+	        } else { return "" }
+	    }
+
     var body: some View {
         PeerRowView(
             color: .green,
             iconSystemName: iconSystemName,
             hostname: myNodeInfo.hostname,
             firstLineText: firstLineText,
-            secondLineText: secondLineText,
+            secondLineText: secondLineText
         ) {
             Text("local")
                 .font(.caption2)
@@ -393,7 +391,7 @@ struct LocalPeerRowView: View {
 
 struct RemotePeerRowView: View {
     let pair: NetworkStatus.PeerRoutePair
-    
+
     var isPublicServer: Bool {
         pair.route.featureFlag?.isPublicServer ?? false
     }
@@ -413,7 +411,7 @@ struct RemotePeerRowView: View {
         guard let lossRates else { return nil }
         return lossRates.reduce(0, +) / Double(lossRates.count)
     }
-    
+
     var firstLineText: String {
         var infoLine: [String] = []
         infoLine.append("ID: \(String(pair.route.peerId))")
@@ -425,7 +423,7 @@ struct RemotePeerRowView: View {
         }
         return infoLine.joined(separator: " ")
     }
-    
+
     var secondLineText: String {
         var infoLine: [String] = []
         if let ip = pair.route.ipv4Addr {
@@ -459,7 +457,7 @@ struct RemotePeerRowView: View {
                     }
                     .foregroundStyle(latencyColor(latency))
                 }
-                
+
                 HStack {
                     Text(pair.route.cost == 1 ? "p2p" : "relay_\(pair.route.cost)")
                         .font(.caption2)
@@ -490,7 +488,7 @@ struct RemotePeerRowView: View {
         default: return .red
         }
     }
-    
+
     func lossRateColor(_ rate: Double) -> Color {
         switch rate {
         case 0..<0.02: return .secondary
@@ -507,7 +505,7 @@ struct SelectedPeerRoute: Identifiable {
 struct TrafficItem: View {
     let trafficType: TrafficType
     let value: Int?
-    
+
     @State var diff: Double?
     @State var lastTime: Date?
     @State var previousValue: Int?
@@ -516,37 +514,37 @@ struct TrafficItem: View {
         case Tx
         case Rx
     }
-    
-    var unifiedValue: Double {
-        guard let diff else { return Double.nan }
-        let v = Double(diff)
-        return switch abs(v) {
-        case ..<1024:
-            v
-        case ..<1048576:
-            v / 1024
-        case ..<1073741824:
-            v / 1048576
-        case ..<1099511627776:
-            v / 1073741824
-        default:
-            v / 1099511627776
-        }
-    }
-    var unit: String {
-        switch abs(diff ?? 0) {
-        case ..<1024:
-            "B/s"
-        case ..<1048576:
-            "KB/s"
-        case ..<1073741824:
-            "MB/s"
-        case ..<1099511627776:
-            "GB/s"
-        default:
-            "TB/s"
-        }
-    }
+
+	    var unifiedValue: Double {
+	        guard let diff else { return Double.nan }
+	        let v = Double(diff)
+	        switch abs(v) {
+	        case ..<1024:
+	            return v
+	        case ..<1048576:
+	            return v / 1024
+	        case ..<1073741824:
+	            return v / 1048576
+	        case ..<1099511627776:
+	            return v / 1073741824
+	        default:
+	            return v / 1099511627776
+	        }
+	    }
+	    var unit: String {
+	        switch abs(diff ?? 0) {
+	        case ..<1024:
+	            return "B/s"
+	        case ..<1048576:
+	            return "KB/s"
+	        case ..<1073741824:
+	            return "MB/s"
+	        case ..<1099511627776:
+	            return "GB/s"
+	        default:
+	            return "TB/s"
+	        }
+	    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -605,24 +603,17 @@ struct StatItem: View {
     let value: LocalizedStringKey
     let icon: String
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if #available(iOS 26.0, macOS 26.0, *) {
-                Label(label, systemImage: icon)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .labelIconToTitleSpacing(2)
-            } else {
-                HStack(spacing: 4) {
-                    Image(systemName: icon)
-                        .font(.caption)
-                    Text(label)
-                        .font(.caption)
-                }
-                .padding(.leading, 4)
-                .foregroundStyle(.secondary)
-            }
-            Text(value)
+	    var body: some View {
+	        VStack(alignment: .leading, spacing: 6) {
+	            HStack(spacing: 4) {
+	                Image(systemName: icon)
+	                    .font(.caption)
+	                Text(label)
+	                    .font(.caption)
+	            }
+	            .padding(.leading, 4)
+	            .foregroundStyle(.secondary)
+	            Text(value)
                 .font(.subheadline)
                 .fontWeight(.medium)
                 .padding(.horizontal, 8)
@@ -635,16 +626,16 @@ struct StatItem: View {
 struct StatusBadge: View {
     let status: ActiveStatus
 
-    var badgeColor: Color {
-        switch status {
-        case .Stopped:
-            .red
-        case .Running:
-            .green
-        case .Loading:
-            .orange
-        }
-    }
+	    var badgeColor: Color {
+	        switch status {
+	        case .Stopped:
+	            return .red
+	        case .Running:
+	            return .green
+	        case .Loading:
+	            return .orange
+	        }
+	    }
 
     enum ActiveStatus: LocalizedStringKey {
         case Stopped = "stopped"
@@ -677,7 +668,7 @@ struct StatusBadge: View {
     }
 }
 
-#if DEBUG
+#if DEBUG && compiler(>=5.9)
 #Preview("Status Portrait") {
     let manager = MockNEManager()
     StatusView("Example", manager: manager)
