@@ -2,11 +2,11 @@
 
 [简体中文](README_CN.md) | [English](README.md)
 
-iOS/macOS 版 EasyTier 原生客户端，适用于去中心化虚拟专用网络解决方案。
+本仓库的目标是将 EasyTier 移植到 iOS 15，并提供 iOS/macOS 版 EasyTier 原生客户端，适用于去中心化虚拟专用网络解决方案。
 
 ### 概览
 
-这是 EasyTier 的 iOS/macOS 客户端，提供友好的界面以在 iOS/macOS 设备上连接 EasyTier 网络，并使用 Network Extension 框架实现系统级 VPN 集成。
+本项目聚焦于让 EasyTier 在 iOS 15 上可用并稳定运行，同时提供友好的界面以在 iOS/macOS 设备上连接 EasyTier 网络，并使用 Network Extension 框架实现系统级 VPN 集成。
 
 ### 截图
 
