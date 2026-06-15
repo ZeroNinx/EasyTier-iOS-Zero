@@ -3,7 +3,8 @@ import EasyTierShared
 
 private func logFileURL() -> URL? {
     FileManager.default
-        .containerURL(forSecurityApplicationGroupIdentifier: APP_GROUP_ID)?
+        .urls(for: .documentDirectory, in: .userDomainMask)
+        .first?
         .appendingPathComponent(LOG_FILENAME)
 }
 
@@ -67,7 +68,7 @@ struct LogView: View {
                         if tailer.isWatching {
                             tailer.stop()
                         } else {
-                            tailer.startWatching(appGroupID: APP_GROUP_ID, filename: LOG_FILENAME, fromStart: false)
+                            startWatchingLog(fromStart: false)
                         }
                     }) {
                         Image(systemName: tailer.isWatching ? "pause" : "play")
@@ -77,7 +78,7 @@ struct LogView: View {
         }
         .onAppear {
             if !tailer.isWatching {
-                tailer.startWatching(appGroupID: APP_GROUP_ID, filename: LOG_FILENAME, fromStart: true)
+                startWatchingLog(fromStart: true)
             }
         }
         .onDisappear {
@@ -88,7 +89,7 @@ struct LogView: View {
             switch newPhase {
             case .active:
                 if wasWatchingBeforeBackground {
-                    tailer.startWatching(appGroupID: APP_GROUP_ID, filename: LOG_FILENAME, fromStart: false)
+                    startWatchingLog(fromStart: false)
                     wasWatchingBeforeBackground = false
                 }
             case .inactive, .background:
@@ -111,6 +112,14 @@ struct LogView: View {
             }
         }
 #endif
+    }
+
+    private func startWatchingLog(fromStart: Bool) {
+        guard let url = logFileURL() else {
+            tailer.errorMessage = .init("Log file not found.")
+            return
+        }
+        tailer.startWatching(fileURL: url, fromStart: fromStart)
     }
 
     private func presentExport() {

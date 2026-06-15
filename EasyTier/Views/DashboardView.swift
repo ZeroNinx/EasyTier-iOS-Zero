@@ -14,8 +14,7 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
     @ObservedObject var manager: Manager
     @ObservedObject var selectedSession: SelectedProfileSession
     
-    @AppStorage("selectedProfileName", store: UserDefaults(suiteName: APP_GROUP_ID)) var lastSelected: String?
-    @AppStorage("profilesUseICloud") var profilesUseICloud: Bool = false
+    @AppStorage("selectedProfileName") var lastSelected: String?
     
     @State var currentProfile = NetworkProfile()
     @State var isLocalPending = false
@@ -40,7 +39,6 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
     @State var conflictConfigName: String?
     @State var conflictDetails: String = ""
 
-    @State var darwinObserver: DarwinNotificationObserver? = nil
     @State private var autoSaveTask: Task<Void, Never>? = nil
     
     init(manager: Manager, selectedSession: SelectedProfileSession) {
@@ -76,7 +74,7 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
             } else {
                 VStack {
                     Spacer()
-                    Image(systemName: "network.slash")
+                    Image(systemName: "xmark.circle")
                         .resizable()
                         .frame(width: 64, height: 64)
                         .foregroundStyle(Color.accentColor)
@@ -302,8 +300,6 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
                                 await manager.disconnect()
                             } else {
                                 do {
-                                    let options = try NetworkExtensionManager.generateOptions(currentProfile)
-                                    NetworkExtensionManager.saveOptions(options)
                                     try await manager.connect()
                                 } catch {
                                     dashboardLogger.error("connect failed: \(error)")
@@ -331,24 +327,9 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
         }
         .onAppear {
             Task { @MainActor in
-                try? await manager.load()
                 if !hasSelectedProfile,
                    let lastSelected {
                     await loadProfile(lastSelected)
-                    if let options = try? NetworkExtensionManager.generateOptions(currentProfile) {
-                        NetworkExtensionManager.saveOptions(options)
-                    }
-                }
-            }
-            // Register Darwin notification observer for tunnel errors
-            darwinObserver = DarwinNotificationObserver(name: "\(APP_BUNDLE_ID).error") {
-                // Read the latest error from shared App Group defaults
-                let defaults = UserDefaults(suiteName: APP_GROUP_ID)
-                if let msg = defaults?.string(forKey: "TunnelLastError") {
-                    DispatchQueue.main.async {
-                        dashboardLogger.error("core stopped: \(msg)")
-                        self.errorMessage = .init(msg)
-                    }
                 }
             }
         }
@@ -360,11 +341,6 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
                 await saveProfile()
             }
         }
-        .onChange(of: profilesUseICloud) { _ in
-            Task { @MainActor in
-                await closeSelectedSession(save: false)
-            }
-        }
         .onChange(of: selectedSession.session) { session in
             lastSelected = session?.name
         }
@@ -373,8 +349,6 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
             scheduleAutoSave()
         }
         .onDisappear {
-            // Release observer to remove registration
-            darwinObserver = nil
             autoSaveTask?.cancel()
             autoSaveTask = nil
             Task { @MainActor in
@@ -481,12 +455,7 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
     }
     
     @MainActor
-    private func saveProfile(saveOptions: Bool = true) async {
-        if saveOptions,
-           let session = selectedSession.session,
-           let options = try? NetworkExtensionManager.generateOptions(session.document.profile) {
-            NetworkExtensionManager.saveOptions(options)
-        }
+    private func saveProfile() async {
         if let session = selectedSession.session {
             do {
                 try await session.save()
@@ -727,7 +696,7 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
             try? await Task.sleep(nanoseconds: autoSaveInterval)
             guard !Task.isCancelled else { return }
             dashboardLogger.info("auto saving...")
-            await saveProfile(saveOptions: true)
+            await saveProfile()
         }
     }
 

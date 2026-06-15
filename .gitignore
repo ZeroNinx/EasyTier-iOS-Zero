@@ -1,5 +1,7 @@
 xcuserdata
 build.log
 compile_commands.json
+log.txt
+.DS_Store
 
 CLAUDE.md

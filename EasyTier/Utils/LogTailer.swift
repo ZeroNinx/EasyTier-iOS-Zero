@@ -19,15 +19,7 @@ class LogTailer: ObservableObject {
     private var fileHandle: FileHandle?
     private var source: DispatchSourceFileSystemObject?
     
-    /// Starts watching a specific file in an App Group
-    func startWatching(appGroupID: String, filename: String, fromStart: Bool) {
-        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID) else {
-            self.errorMessage = .init("Invalid App Group ID.")
-            return
-        }
-        
-        let fileURL = containerURL.appendingPathComponent(filename)
-        
+    func startWatching(fileURL: URL, fromStart: Bool) {
         // Ensure file exists to avoid crash when opening; create if missing
         if !FileManager.default.fileExists(atPath: fileURL.path) {
             try? "".write(to: fileURL, atomically: true, encoding: .utf8)

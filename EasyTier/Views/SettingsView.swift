@@ -2,8 +2,6 @@ import SwiftUI
 import NetworkExtension
 import EasyTierShared
 
-let sharedDefaults = UserDefaults(suiteName: APP_GROUP_ID)
-
 struct SettingsView<Manager: NetworkExtensionManagerProtocol>: View {
     @ObservedObject var manager: Manager
     @AppStorage("logLevel") var logLevel: LogLevel = .info
@@ -13,21 +11,14 @@ struct SettingsView<Manager: NetworkExtensionManagerProtocol>: View {
 #if os(iOS)
     @AppStorage("plainTextIPInput") var plainTextIPInput: Bool = false
 #endif
-    @AppStorage("profilesUseICloud") var profilesUseICloud: Bool = false
-    @AppStorage("includeAllNetworks", store: sharedDefaults) var includeAllNetworks: Bool = false
-    @AppStorage("excludeLocalNetworks", store: sharedDefaults) var excludeLocalNetworks: Bool = false
-    @AppStorage("excludeCellularServices", store: sharedDefaults) var excludeCellularServices: Bool = true
-    @AppStorage("excludeAPNs", store: sharedDefaults) var excludeAPNs: Bool = true
-    @AppStorage("excludeDeviceCommunication", store: sharedDefaults) var excludeDeviceCommunication: Bool = true
-    @AppStorage("enforceRoutes", store: sharedDefaults) var enforceRoutes: Bool = false
+    @AppStorage("includeAllNetworks") var includeAllNetworks: Bool = false
+    @AppStorage("excludeLocalNetworks") var excludeLocalNetworks: Bool = false
+    @AppStorage("excludeCellularServices") var excludeCellularServices: Bool = true
+    @AppStorage("excludeAPNs") var excludeAPNs: Bool = true
+    @AppStorage("excludeDeviceCommunication") var excludeDeviceCommunication: Bool = true
+    @AppStorage("enforceRoutes") var enforceRoutes: Bool = false
     @State private var selectedPane: SettingsPane?
-#if os(iOS)
-    @State private var exportURL: URL?
-    @State private var isExportPresented = false
-#endif
     @State private var settingsErrorMessage: TextItem?
-    @State private var isExporting = false
-    @State private var isAlwaysOnUpdating = false
     @State private var showResetAlert: Bool = false
     
     init(manager: Manager) {
@@ -77,21 +68,10 @@ struct SettingsView<Manager: NetworkExtensionManagerProtocol>: View {
                 primaryButton: .destructive(Text("reset")) {
                     UserDefaults.standard.removePersistentDomain(forName: Bundle.main.bundleIdentifier!)
                     UserDefaults.standard.synchronize()
-                    if let sharedDefaults {
-                        sharedDefaults.removePersistentDomain(forName: APP_GROUP_ID)
-                        sharedDefaults.synchronize()
-                    }
                 },
                 secondaryButton: .cancel()
             )
         }
-#if os(iOS)
-        .sheet(isPresented: $isExportPresented) {
-            if let url = exportURL {
-                ShareSheet(activityItems: [url])
-            }
-        }
-#endif
     }
     
     var secondaryColumn: some View {
@@ -136,12 +116,6 @@ struct SettingsView<Manager: NetworkExtensionManagerProtocol>: View {
 #if os(iOS)
                 Toggle("plain_text_ip_input", isOn: $plainTextIPInput)
 #endif
-                Toggle("save_to_icloud", isOn: $profilesUseICloud)
-                Toggle("always_on", isOn: $manager.isAlwaysOnEnabled)
-                    .disabled(manager.isLoading || isAlwaysOnUpdating)
-                    .onChange(of: manager.isAlwaysOnEnabled) { newValue in
-                        updateAlwaysOn(newValue)
-                    }
             }
 
             Section {
@@ -163,24 +137,6 @@ struct SettingsView<Manager: NetworkExtensionManagerProtocol>: View {
                     .multilineTextAlignment(.trailing)
                     .numberKeyboardType()
                 }
-                Button(action: {
-                    exportOSLog()
-                }) {
-                    HStack {
-                        Text("export_oslog")
-                        Spacer()
-                        if isExporting {
-#if os(iOS)
-                            ProgressView()
-#endif
-                        }
-                    }
-                }
-#if os(macOS)
-                .buttonStyle(.borderless)
-                .tint(.accentColor)
-#endif
-                .disabled(isExporting || manager.status == .disconnected)
             } header: {
                 Text("logging")
             } footer: {
@@ -342,52 +298,6 @@ struct SettingsView<Manager: NetworkExtensionManagerProtocol>: View {
         .navigationTitle("about.license")
     }
 
-    private func exportOSLog() {
-        guard !isExporting else { return }
-        isExporting = true
-        Task {
-            do {
-                let url = try await manager.exportExtensionLogs()
-                await MainActor.run {
-#if os(iOS)
-                    exportURL = url
-                    isExportPresented = true
-#elseif os(macOS)
-                    do {
-                        try saveExportedFileToDisk(url)
-                    } catch {
-                        settingsErrorMessage = .init(error.localizedDescription)
-                    }
-#endif
-                }
-            } catch {
-                await MainActor.run {
-                    settingsErrorMessage = .init(String(localized: "export_failed"))
-                }
-            }
-            await MainActor.run {
-                isExporting = false
-            }
-        }
-    }
-
-    private func updateAlwaysOn(_ enabled: Bool) {
-        guard !isAlwaysOnUpdating else { return }
-        isAlwaysOnUpdating = true
-        Task {
-            do {
-                try await manager.setAlwaysOnEnabled(enabled)
-            } catch {
-                await MainActor.run {
-                    manager.isAlwaysOnEnabled = !enabled
-                    settingsErrorMessage = .init(String(localized: "always_on_failed"))
-                }
-            }
-            await MainActor.run {
-                isAlwaysOnUpdating = false
-            }
-        }
-    }
 }
 
 #if DEBUG && compiler(>=5.9)

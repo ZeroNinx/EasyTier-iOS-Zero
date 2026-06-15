@@ -18,15 +18,16 @@
 - [x] GUI 可在 iOS 15 目标上编译。
 - [x] `NavigationStack` 等 iOS 16 SwiftUI API 已加 iOS 15 兼容层。
 - [x] README 已标注为个人 iOS 15+ 越狱 Fork。
-- [x] Bundle ID / App Group 已切到 `com.zeroninex.easytier` / `group.com.zeroninex.easytier`。
+- [x] Bundle ID 已切到 `com.zeroninex.easytier`，App Group entitlement 已从产物移除。
 - [x] 已移除一部分旧团队、旧 App Store 能力和发布路径残留。
 
 仍需处理：
 
 - [ ] GUI 仍以 `NetworkExtensionManager` 为运行入口。
 - [ ] App、Network Extension、Widget 相关 target 仍留在工程里。
-- [ ] iCloud 配置项和 ProfileStore 的 iCloud 路径仍存在。
-- [ ] 日志仍依赖 App Group / Network Extension 时代的文件位置。
+- [x] iCloud 配置项和 ProfileStore 的 iCloud 路径已移除。
+- [x] 主 App 日志页已从 App Group 路径迁回本地 Documents。
+- [ ] legacy Network Extension 日志导出路径仍待移除或迁移。
 - [ ] 越狱 daemon、IPC、utun、route、DNS 尚未实现。
 
 当前原则：
@@ -76,11 +77,11 @@ EasyTier App GUI
 
 ### 2.1 工程与能力清理
 
-- [ ] 保留 App target 作为 GUI。
-- [ ] 将 `EasyTierNetworkExtension` target 标记为迁移参考，第一阶段不删除源文件。
-- [ ] 将 Widget / Control Widget / AppIntents 标记为废弃，先从主 App 依赖链中断开。
-- [ ] 确认 iPhoneOS 产物不再注入 macOS sandbox entitlements。
-- [ ] 确认 Debug 真机产物可以启动。
+- [x] 保留 App target 作为 GUI。
+- [x] 将 `EasyTierNetworkExtension` target 标记为迁移参考，第一阶段不删除源文件。
+- [x] 将 Widget / Control Widget / AppIntents 标记为废弃，先从主 App 依赖链中断开。
+- [x] 确认 iPhoneOS 产物不再注入 macOS sandbox entitlements。
+- [x] 确认 Debug 真机产物可以启动。
 
 实现方案：
 
@@ -91,23 +92,31 @@ EasyTier App GUI
 
 验收标准：
 
-- [ ] `xcodebuild -project EasyTier.xcodeproj -scheme EasyTier -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build` 通过。
-- [ ] 真机 Debug App 能启动 GUI。
-- [ ] 最终 iPhoneOS App entitlements 不包含 macOS sandbox 权限。
+- [x] `xcodebuild -project EasyTier.xcodeproj -scheme EasyTier -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build` 通过。
+- [x] 真机 Debug App 能启动 GUI。
+- [x] 最终 iPhoneOS App entitlements 不包含 macOS sandbox 权限。
 
 ### 2.2 iCloud / App Group 降级
 
-- [ ] 关闭设置页里的 iCloud 同步入口。
-- [ ] `ProfileStore` 默认只使用本地 Documents 或越狱共享目录。
-- [ ] App Group 不再作为主存储方案，只作为过渡兼容。
-- [ ] 删除 `Info.plist` 里的旧 `iCloud.site.yinmo.easytier` 残留。
+- [x] 关闭设置页里的 iCloud 同步入口。
+- [x] `ProfileStore` 默认只使用本地 Documents 或越狱共享目录。
+- [x] 移除 `ProfileStore` 的 iCloud metadata query 冲突监听。
+- [x] 主 App 的 profile、设置和选中 profile 不再以 App Group 作为主存储方案。
+- [x] App、Network Extension、Widget entitlements 不再声明 App Group。
+- [x] 主 App 日志页不再访问 App Group container。
+- [ ] legacy Network Extension 兼容代码仍需从 App Group 迁出。
+- [x] 删除 `Info.plist` 里的旧 `iCloud.site.yinmo.easytier` 残留。
 
 实现方案：
 
-1. `profilesUseICloud` 设置项先隐藏或强制为 false。
+1. 删除 `profilesUseICloud` 设置项和相关 UI 入口。
 2. `ProfileStore.profilesDirectoryURL()` 删除 `url(forUbiquityContainerIdentifier:)` 分支。
-3. 引入 `AppPaths`，统一管理本地路径。
-4. 第一阶段使用 App sandbox Documents，daemon 引入后迁移到越狱共享目录。
+3. `ProfileSession` 不再启动 `NSMetadataQueryUbiquitousDocumentsScope`。
+4. Dashboard 不再在启动、自动保存、连接前写入 Network Extension 的 App Group 配置。
+5. Dashboard 启动时不再调用 `NetworkExtensionManager.load()`。
+6. LogView / LogTailer 先改为读取 App sandbox Documents 下的日志文件。
+7. 引入 `AppPaths`，统一管理本地路径。
+8. 第一阶段使用 App sandbox Documents，daemon 引入后迁移到越狱共享目录。
 
 目标路径：
 
@@ -121,9 +130,9 @@ EasyTier App GUI
 
 验收标准：
 
-- [ ] 新建、重命名、删除 profile 均走本地路径。
-- [ ] 设置页不再出现 iCloud 同步文案。
-- [ ] 旧 iCloud container key 不再出现在 `Info.plist`。
+- [x] 新建、重命名、删除 profile 均走本地路径。
+- [x] 设置页不再出现 iCloud 同步文案。
+- [x] 旧 iCloud container key 不再出现在 `Info.plist`。
 
 ---
 
@@ -576,9 +585,9 @@ postrm
 
 按建议顺序执行：
 
-1. [ ] 提交 README / TODO 文档状态。
-2. [ ] 删除或隐藏 iCloud 设置入口。
-3. [ ] 移除 `Info.plist` 旧 iCloud container。
+1. [x] 提交 README / TODO 文档状态。
+2. [x] 删除或隐藏 iCloud 设置入口。
+3. [x] 移除 `Info.plist` 旧 iCloud container。
 4. [ ] 新增 `TunnelRuntimeStatus` 和 `TunnelManagerProtocol`。
 5. [ ] 用 adapter 包装现有 `NetworkExtensionManager`，让 GUI 先依赖协议。
 6. [ ] 新增 `JailbreakTunnelManager` 空实现，返回 `daemonUnavailable`。

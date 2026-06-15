@@ -16,9 +16,6 @@ struct EasyTierApp: App {
             "logPreservedLines": 1000,
             "useRealDeviceNameAsDefault": true,
             "plainTextIPInput": false,
-            "profilesUseICloud": false,
-        ]
-        let sharedValues: [String: Any] = [
             "includeAllNetworks": false,
             "excludeLocalNetworks": true,
             "excludeCellularServices": true,
@@ -27,7 +24,6 @@ struct EasyTierApp: App {
             "enforceRoutes": false,
         ]
         UserDefaults.standard.register(defaults: values)
-        UserDefaults(suiteName: APP_GROUP_ID)?.register(defaults: sharedValues)
     }
 
     var body: some Scene {

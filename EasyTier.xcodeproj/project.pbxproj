@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0526D7992F1762C300968CE2 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0526D7822F1762C300968CE2 /* Localizable.xcstrings */; };
-		0526D7B32F17656B00968CE2 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0526D7822F1762C300968CE2 /* Localizable.xcstrings */; };
+		0526D7992F1762C300968CE2 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = DA4C01052FE1600000000000 /* Localizable.strings */; };
+		0526D7B32F17656B00968CE2 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = DA4C01052FE1600000000000 /* Localizable.strings */; };
 		0526D84A2F17D9AA00968CE2 /* libEasyTierShared.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0526D8422F17D98E00968CE2 /* libEasyTierShared.a */; };
 		0526D84B2F17E55300968CE2 /* libEasyTierShared.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0526D8422F17D98E00968CE2 /* libEasyTierShared.a */; };
 		054000102F30000000000000 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000202F30000000000000 /* ContentView.swift */; };
@@ -27,7 +27,6 @@
 		0540001D2F30000000000000 /* Utils/LogTailer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540002D2F30000000000000 /* Utils/LogTailer.swift */; };
 		0540001E2F30000000000000 /* Utils/NetworkExtensionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540002E2F30000000000000 /* Utils/NetworkExtensionManager.swift */; };
 		0540001F2F30000000000000 /* Utils/ProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540002F2F30000000000000 /* Utils/ProfileStore.swift */; };
-		054000302F30000000000000 /* Utils/Shortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000402F30000000000000 /* Utils/Shortcuts.swift */; };
 		054000312F30000000000000 /* Utils/TextItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000412F30000000000000 /* Utils/TextItem.swift */; };
 		054000322F30000000000000 /* Views/DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000422F30000000000000 /* Views/DashboardView.swift */; };
 		054000332F30000000000000 /* Views/LogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000432F30000000000000 /* Views/LogView.swift */; };
@@ -45,7 +44,6 @@
 		0540003F2F30000000000000 /* ControlWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540004F2F30000000000000 /* ControlWidget.swift */; };
 		054000502F30000000000000 /* Widget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054000602F30000000000000 /* Widget.swift */; };
 		055836312F04D26700139811 /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 055836302F04D26700139811 /* NetworkExtension.framework */; };
-		055836392F04D26700139811 /* EasyTierNetworkExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0558362E2F04D26600139811 /* EasyTierNetworkExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		059A7D6A2F9C966E001778FC /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 059A7D692F9C966E001778FC /* SystemConfiguration.framework */; };
 		05B61F5C2F05056D00646DDC /* libeasytier_ios.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 05B61F5B2F05056D00646DDC /* libeasytier_ios.a */; };
 		05B6235C2F08098100646DDC /* TOMLKit in Frameworks */ = {isa = PBXBuildFile; productRef = 05B6235B2F08098100646DDC /* TOMLKit */; };
@@ -61,13 +59,6 @@
 			proxyType = 1;
 			remoteGlobalIDString = 0526D8412F17D98E00968CE2;
 			remoteInfo = EasyTierShared;
-		};
-		055836372F04D26700139811 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 051C6A032F03AB0000AF29B1 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 0558362D2F04D26600139811;
-			remoteInfo = NetworkExtension;
 		};
 		05CF11DB2F1A589D00E6EDF1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -94,7 +85,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				055836392F04D26700139811 /* EasyTierNetworkExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -105,6 +95,8 @@
 		051C6A0B2F03AB0000AF29B1 /* EasyTier.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EasyTier.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0526D7822F1762C300968CE2 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		0526D8422F17D98E00968CE2 /* libEasyTierShared.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libEasyTierShared.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		DA4C01032FE1600000000000 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		DA4C01042FE1600000000000 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		054000202F30000000000000 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		054000212F30000000000000 /* EasyTierApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyTierApp.swift; sourceTree = "<group>"; };
 		054000222F30000000000000 /* Components/AdaptiveNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/AdaptiveNavigation.swift; sourceTree = "<group>"; };
@@ -205,6 +197,7 @@
 				7A59B81E2F1641100069728D /* EasyTierWidgetExtension */,
 				0526D8432F17D98E00968CE2 /* EasyTierShared */,
 				0558362F2F04D26700139811 /* Frameworks */,
+				DA4C01052FE1600000000000 /* Localizable.strings */,
 				0526D7822F1762C300968CE2 /* Localizable.xcstrings */,
 				051C6A0C2F03AB0000AF29B1 /* Products */,
 			);
@@ -327,12 +320,10 @@
 				051C6A072F03AB0000AF29B1 /* Sources */,
 				051C6A082F03AB0000AF29B1 /* Frameworks */,
 				051C6A092F03AB0000AF29B1 /* Resources */,
-				0558363E2F04D26700139811 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				055836382F04D26700139811 /* PBXTargetDependency */,
 			);
 			name = EasyTier;
 			packageProductDependencies = (
@@ -432,6 +423,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				"zh-Hans",
 				Base,
 			);
 			mainGroup = 051C6A022F03AB0000AF29B1;
@@ -455,7 +447,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0526D7992F1762C300968CE2 /* Localizable.xcstrings in Resources */,
+				0526D7992F1762C300968CE2 /* Localizable.strings in Resources */,
 				054000372F30000000000000 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -471,11 +463,23 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0526D7B32F17656B00968CE2 /* Localizable.xcstrings in Resources */,
+				0526D7B32F17656B00968CE2 /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		DA4C01052FE1600000000000 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				DA4C01032FE1600000000000 /* en */,
+				DA4C01042FE1600000000000 /* zh-Hans */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin PBXShellScriptBuildPhase section */
 		05B61F3E2F04D57D00646DDC /* Build EasyTier Core */ = {
@@ -520,7 +524,6 @@
 				0540001D2F30000000000000 /* Utils/LogTailer.swift in Sources */,
 				0540001E2F30000000000000 /* Utils/NetworkExtensionManager.swift in Sources */,
 				0540001F2F30000000000000 /* Utils/ProfileStore.swift in Sources */,
-				054000302F30000000000000 /* Utils/Shortcuts.swift in Sources */,
 				054000312F30000000000000 /* Utils/TextItem.swift in Sources */,
 				054000322F30000000000000 /* Views/DashboardView.swift in Sources */,
 				054000332F30000000000000 /* Views/LogView.swift in Sources */,
@@ -567,11 +570,6 @@
 			isa = PBXTargetDependency;
 			target = 0526D8412F17D98E00968CE2 /* EasyTierShared */;
 			targetProxy = 0526D84C2F17E55300968CE2 /* PBXContainerItemProxy */;
-		};
-		055836382F04D26700139811 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 0558362D2F04D26600139811 /* EasyTierNetworkExtension */;
-			targetProxy = 055836372F04D26700139811 /* PBXContainerItemProxy */;
 		};
 		05CF11DC2F1A589D00E6EDF1 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;

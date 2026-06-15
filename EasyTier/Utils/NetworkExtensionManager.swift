@@ -1,7 +1,6 @@
 import Foundation
 import Combine
 import NetworkExtension
-import WidgetKit
 import os
 #if os(iOS)
 import UIKit
@@ -62,7 +61,7 @@ class NetworkExtensionManager: NetworkExtensionManagerProtocol {
 
     @Published var status: NEVPNStatus
     @Published var connectedDate: Date?
-    @Published var isLoading = true
+    @Published var isLoading = false
     @Published var isAlwaysOnEnabled = false
     
     init() {
@@ -90,20 +89,8 @@ class NetworkExtensionManager: NetworkExtensionManagerProtocol {
                     self.manager = nil
                 }
 
-                // Sync VPN connection status to App Group for Control Widget
-                self.syncWidgetState()
             }
         }
-    }
-    
-    // Notify Control Widget to refresh its state
-    private func syncWidgetState() {
-        #if compiler(>=5.10)
-        if #available(iOS 18.0, macOS 26.0, *) {
-            ControlCenter.shared.reloadControls(ofKind: "\(APP_BUNDLE_ID).control")
-        }
-        #endif
-        WidgetCenter.shared.reloadTimelines(ofKind: "\(APP_BUNDLE_ID).widget")
     }
     
     private func reset() {
@@ -214,7 +201,7 @@ class NetworkExtensionManager: NetworkExtensionManagerProtocol {
     }
     
     static func saveOptions(_ options: EasyTierOptions) {
-        // Save config to App Group for Widget use
+        // Legacy Network Extension path. The jailbreak runtime should not call this.
         let defaults = UserDefaults(suiteName: APP_GROUP_ID)
         if let configData = try? JSONEncoder().encode(options) {
             logger.debug("save options: \(configData.string ?? "nil")")
@@ -256,8 +243,6 @@ class NetworkExtensionManager: NetworkExtensionManagerProtocol {
             throw error
         }
         Self.logger.info("connect() started")
-        // Immediately sync widget state after initiating connection
-        syncWidgetState()
     }
     
     func disconnect() async {
@@ -266,8 +251,6 @@ class NetworkExtensionManager: NetworkExtensionManagerProtocol {
             return
         }
         manager.connection.stopVPNTunnel()
-        // Immediately sync widget state after initiating disconnection
-        syncWidgetState()
     }
     
     func updateName(name: String, server: String) async {

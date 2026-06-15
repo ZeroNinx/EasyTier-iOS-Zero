@@ -203,78 +203,6 @@ struct ProfileDocument: FileDocument {
     }
 }
 
-final class ProfileConflictMetadataObserver: NSObject {
-    private let fileURL: URL
-    private let onPotentialConflict: () -> Void
-    private let query = NSMetadataQuery()
-    private var observers: [NSObjectProtocol] = []
-
-    init(fileURL: URL, onPotentialConflict: @escaping () -> Void) {
-        self.fileURL = fileURL
-        self.onPotentialConflict = onPotentialConflict
-    }
-
-    deinit {
-        stop()
-    }
-
-    func start() {
-        let fileName = fileURL.lastPathComponent
-        query.searchScopes = [
-            NSMetadataQueryUbiquitousDocumentsScope,
-            fileURL.deletingLastPathComponent().path
-        ]
-        query.predicate = NSPredicate(format: "%K == %@", NSMetadataItemFSNameKey, fileName)
-
-        let center = NotificationCenter.default
-        observers.append(
-            center.addObserver(
-                forName: .NSMetadataQueryDidFinishGathering,
-                object: query,
-                queue: nil
-            ) { [weak self] _ in
-                self?.handleQueryChanged()
-            }
-        )
-        observers.append(
-            center.addObserver(
-                forName: .NSMetadataQueryDidUpdate,
-                object: query,
-                queue: nil
-            ) { [weak self] _ in
-                self?.handleQueryChanged()
-            }
-        )
-
-        query.start()
-    }
-
-    func stop() {
-        for observer in observers {
-            NotificationCenter.default.removeObserver(observer)
-        }
-        observers.removeAll()
-        query.stop()
-    }
-
-    private func handleQueryChanged() {
-        query.disableUpdates()
-        defer { query.enableUpdates() }
-
-        let target = fileURL.standardizedFileURL
-        for item in query.results {
-            guard let metadata = item as? NSMetadataItem,
-                  let resultURL = metadata.value(forAttribute: NSMetadataItemURLKey) as? URL else {
-                continue
-            }
-            if resultURL.standardizedFileURL == target {
-                onPotentialConflict()
-                return
-            }
-        }
-    }
-}
-
 actor ProfileSessionQueue {
     private var lastTask: Task<Void, Error>? = nil
 
@@ -305,18 +233,12 @@ final class ProfileSession: ObservableObject, Equatable {
     let fileURL: URL
     var document: ProfileDocument
     private let queue = ProfileSessionQueue()
-    private var conflictObserver: ProfileConflictMetadataObserver?
     private var hasNotifiedConflict = false
 
     init(name: String, fileURL: URL, document: ProfileDocument) {
         self.name = name
         self.fileURL = fileURL
         self.document = document
-        registerConflictObserver()
-    }
-
-    deinit {
-        conflictObserver?.stop()
     }
 
     func save() async throws {
@@ -331,27 +253,6 @@ final class ProfileSession: ObservableObject, Equatable {
     }
 
     func close() async {
-        unregisterConflictObserver()
-    }
-
-    private func registerConflictObserver() {
-        let observer = ProfileConflictMetadataObserver(fileURL: fileURL) { [weak self] in
-            Task { @MainActor in
-                self?.notifyConflictIfNeeded()
-            }
-        }
-        conflictObserver = observer
-        observer.start()
-        Task { @MainActor in
-            self.notifyConflictIfNeeded()
-        }
-    }
-
-    private func unregisterConflictObserver() {
-        if let conflictObserver {
-            conflictObserver.stop()
-            self.conflictObserver = nil
-        }
     }
 
     private func notifyConflictIfNeeded() {
@@ -434,12 +335,6 @@ enum ProfileStore {
     }
 
     private static func profilesDirectoryURL() throws -> URL {
-        if shouldUseICloud(),
-           let ubiquityURL = FileManager.default.url(forUbiquityContainerIdentifier: ICLOUD_CONTAINER_ID) {
-            let documentsURL = ubiquityURL.appendingPathComponent("Documents", isDirectory: true)
-            profileStoreLogger.debug("saving to iCloud: \(documentsURL)")
-            return documentsURL
-        }
         guard let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
             throw CocoaError(.fileNoSuchFile)
         }
@@ -469,10 +364,6 @@ enum ProfileStore {
         let parts = trimmed.components(separatedBy: invalid)
         let sanitized = parts.filter { !$0.isEmpty }.joined(separator: "_")
         return sanitized.isEmpty ? fallback : sanitized
-    }
-
-    private static func shouldUseICloud() -> Bool {
-        return UserDefaults.standard.bool(forKey: "profilesUseICloud")
     }
 
     @MainActor
