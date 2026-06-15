@@ -107,7 +107,7 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
     }
 
     var manageSheet: some View {
-        NavigationStack {
+        CompatNavigationStack {
             Form {
                 Section("network") {
                     let profiles = ProfileStore.loadIndexOrEmpty().map{ IdenticalTextItem($0) }
@@ -250,7 +250,7 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
 #endif
                 }
             }
-            .formStyle(.grouped)
+            .adaptiveGroupedFormStyle()
             .navigationTitle("device.management")
             .adaptiveNavigationBarTitleInline()
             .toolbar {
@@ -281,7 +281,7 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
     }
 
     var body: some View {
-        NavigationStack {
+        CompatNavigationStack {
             mainView
                 .navigationTitle(selectedSession.session?.name ?? String(localized: "select_network"))
                 .toolbar {
@@ -390,7 +390,7 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
         .sheet(isPresented: $showManageSheet) {
             manageSheet
                 .sheet(isPresented: $showEditSheet) {
-                    NavigationStack {
+                    CompatNavigationStack {
                         VStack(spacing: 0) {
                             TextEditor(text: $editText)
                                 .font(.system(.body, design: .monospaced))

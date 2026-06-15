@@ -46,11 +46,11 @@ struct SettingsView<Manager: NetworkExtensionManagerProtocol>: View {
     }
 
     var body: some View {
-        NavigationStack {
+        CompatNavigationStack {
             AdaptiveNavigation(primaryColumn, secondaryColumn, showNav: $selectedPane)
                 .navigationTitle("settings")
                 .adaptiveNavigationBarTitleInline()
-                .scrollDismissesKeyboard(.immediately)
+                .adaptiveScrollDismissesKeyboardImmediately()
         }
     }
     
@@ -64,7 +64,7 @@ struct SettingsView<Manager: NetworkExtensionManagerProtocol>: View {
             Form {
                 settingsContent
             }
-            .formStyle(.grouped)
+            .adaptiveGroupedFormStyle()
 #endif
         }
         .alert(item: $settingsErrorMessage) { msg in
@@ -220,7 +220,18 @@ struct SettingsView<Manager: NetworkExtensionManagerProtocol>: View {
                 Link("about.privacy_policy", destination: URL(string: "https://easytier.cn/guide/privacy.html")!)
                 
 #if os(iOS)
-                NavigationLink("about.license", value: SettingsPane.license)
+                Button {
+                    selectedPane = .license
+                } label: {
+                    HStack {
+                        Text("about.license")
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .foregroundStyle(.primary)
 #else
                 NavigationLink("about.license") {
                     openSourceLicenseView

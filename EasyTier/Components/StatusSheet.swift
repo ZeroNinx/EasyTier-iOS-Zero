@@ -7,7 +7,7 @@ struct NetworkSettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
+        CompatNavigationStack {
             Form {
                 if let settings {
                     if let ipv4 = settings.ipv4 {
@@ -77,7 +77,7 @@ struct NetworkSettingsSheet: View {
             .textSelection(.enabled)
             .navigationTitle("network_settings")
             .adaptiveNavigationBarTitleInline()
-            .formStyle(.grouped)
+            .adaptiveGroupedFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
@@ -163,12 +163,12 @@ struct PeerConnDetailSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        CompatNavigationStack {
             content
             .textSelection(.enabled)
             .navigationTitle("peer_details")
             .adaptiveNavigationBarTitleInline()
-            .formStyle(.grouped)
+            .adaptiveGroupedFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
@@ -344,7 +344,7 @@ struct NodeInfoSheet: View {
     }
     
     var body: some View {
-        NavigationStack {
+        CompatNavigationStack {
             Form {
                 if let nodeInfo {
                     Section("general") {
@@ -366,7 +366,7 @@ struct NodeInfoSheet: View {
             .textSelection(.enabled)
             .navigationTitle("node_information")
             .adaptiveNavigationBarTitleInline()
-            .formStyle(.grouped)
+            .adaptiveGroupedFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
@@ -389,7 +389,7 @@ struct IPInfoSheet: View {
     }
     
     var body: some View {
-        NavigationStack {
+        CompatNavigationStack {
             Form {
                 if let nodeInfo {
                     if let virtualIPv4 = nodeInfo.virtualIPv4 {
@@ -441,7 +441,7 @@ struct IPInfoSheet: View {
             .textSelection(.enabled)
             .navigationTitle("ip_information")
             .adaptiveNavigationBarTitleInline()
-            .formStyle(.grouped)
+            .adaptiveGroupedFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
@@ -464,7 +464,7 @@ struct StunInfoSheet: View {
     }
     
     var body: some View {
-        NavigationStack {
+        CompatNavigationStack {
             Form {
                 if let stunInfo {
                     Section("nat_types") {
@@ -503,7 +503,7 @@ struct StunInfoSheet: View {
             .navigationTitle("stun_information")
             .adaptiveNavigationBarTitleInline()
             .textSelection(.enabled)
-            .formStyle(.grouped)
+            .adaptiveGroupedFormStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {

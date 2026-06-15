@@ -1,5 +1,32 @@
 import SwiftUI
 
+struct LabeledContent<Content: View>: View {
+    private let label: LocalizedStringKey
+    private let content: Content
+
+    init(_ label: LocalizedStringKey, @ViewBuilder content: () -> Content) {
+        self.label = label
+        self.content = content()
+    }
+
+    var body: some View {
+        HStack {
+            Text(label)
+            Spacer()
+            content
+                .multilineTextAlignment(.trailing)
+        }
+    }
+}
+
+extension LabeledContent where Content == Text {
+    init<S: StringProtocol>(_ label: LocalizedStringKey, value: S) {
+        self.init(label) {
+            Text(String(value))
+        }
+    }
+}
+
 #if os(iOS)
     #if compiler(>=5.9)
         let ToolbarLeading = ToolbarItemPlacement.topBarLeading
@@ -43,6 +70,32 @@ extension View {
         return self.textInputAutocapitalization(.never)
 #else
         return self
+#endif
+    }
+
+    @ViewBuilder
+    func adaptiveScrollDismissesKeyboardImmediately() -> some View {
+#if os(iOS)
+        if #available(iOS 16.0, *) {
+            self.scrollDismissesKeyboard(.immediately)
+        } else {
+            self
+        }
+#else
+        self
+#endif
+    }
+
+    @ViewBuilder
+    func adaptiveGroupedFormStyle() -> some View {
+#if os(iOS)
+        if #available(iOS 16.0, *) {
+            self.formStyle(.grouped)
+        } else {
+            self
+        }
+#else
+        self.formStyle(.grouped)
 #endif
     }
 }

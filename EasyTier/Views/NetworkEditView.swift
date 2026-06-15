@@ -20,12 +20,12 @@ struct NetworkEditView: View {
 #if os(iOS)
         List(selection: $selectedPane) {
             basicSettings
-            NavigationLink("advanced_settings", value: EditPane.advanced)
-            NavigationLink("dns_settings", value: EditPane.dns)
-            NavigationLink("route_settings", value: EditPane.route)
-            NavigationLink("port_forwards", value: EditPane.portForwards)
+            selectPaneRow("advanced_settings", pane: .advanced)
+            selectPaneRow("dns_settings", pane: .dns)
+            selectPaneRow("route_settings", pane: .route)
+            selectPaneRow("port_forwards", pane: .portForwards)
         }
-        .scrollDismissesKeyboard(.immediately)
+        .adaptiveScrollDismissesKeyboardImmediately()
 #else
         Form {
             basicSettings
@@ -34,7 +34,7 @@ struct NetworkEditView: View {
             NavigationLink("route_settings") { routeSettings }
             NavigationLink("port_forwards") { portForwardsSettings }
         }
-        .formStyle(.grouped)
+        .adaptiveGroupedFormStyle()
 #endif
     }
     
@@ -62,7 +62,22 @@ struct NetworkEditView: View {
                 .ignoresSafeArea()
             }
         }
-        .scrollDismissesKeyboard(.immediately)
+        .adaptiveScrollDismissesKeyboardImmediately()
+    }
+
+    private func selectPaneRow(_ title: LocalizedStringKey, pane: EditPane) -> some View {
+        Button {
+            selectedPane = pane
+        } label: {
+            HStack {
+                Text(title)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .foregroundStyle(.primary)
     }
 
     var basicSettings: some View {
@@ -282,8 +297,8 @@ struct NetworkEditView: View {
             }
         }
         .navigationTitle("advanced_settings")
-        .scrollDismissesKeyboard(.immediately)
-        .formStyle(.grouped)
+        .adaptiveScrollDismissesKeyboardImmediately()
+        .adaptiveGroupedFormStyle()
     }
     
     var dnsSettings: some View {
@@ -332,8 +347,8 @@ struct NetworkEditView: View {
             }
         }
         .navigationTitle("dns_settings")
-        .scrollDismissesKeyboard(.immediately)
-        .formStyle(.grouped)
+        .adaptiveScrollDismissesKeyboardImmediately()
+        .adaptiveGroupedFormStyle()
     }
     
     var routeSettings: some View {
@@ -374,11 +389,11 @@ struct NetworkEditView: View {
             }
         }
         .navigationTitle("route_settings")
-        .scrollDismissesKeyboard(.immediately)
+        .adaptiveScrollDismissesKeyboardImmediately()
         .sheet(isPresented: $showProxyCIDREditor) {
             proxyCIDREditor
         }
-        .formStyle(.grouped)
+        .adaptiveGroupedFormStyle()
     }
 
     var portForwardsSettings: some View {
@@ -443,8 +458,8 @@ struct NetworkEditView: View {
             })
         }
         .navigationTitle("port_forwards")
-        .scrollDismissesKeyboard(.immediately)
-        .formStyle(.grouped)
+        .adaptiveScrollDismissesKeyboardImmediately()
+        .adaptiveGroupedFormStyle()
     }
     
     var proxyCIDRsSettings: some View {
@@ -476,11 +491,11 @@ struct NetworkEditView: View {
                 }
             })
         }
-        .formStyle(.grouped)
+        .adaptiveGroupedFormStyle()
     }
     
     var proxyCIDREditor: some View {
-        NavigationStack {
+        CompatNavigationStack {
             Form {
                 Section("common_text.proxy_cidr") {
                     LabeledContent("cidr") {
@@ -496,7 +511,7 @@ struct NetworkEditView: View {
                     }
                 }
             }
-            .formStyle(.grouped)
+            .adaptiveGroupedFormStyle()
             .navigationTitle("common_text.edit_proxy_cidr")
             .adaptiveNavigationBarTitleInline()
             .toolbar {
@@ -520,7 +535,7 @@ struct NetworkEditView: View {
 @available(iOS 17.0, macOS 14.0, *)
 #Preview("Network Edit Portrait") {
     @Previewable @State var profile = NetworkProfile()
-    NavigationStack {
+    CompatNavigationStack {
         NetworkEditView(profile: $profile)
     }
 }

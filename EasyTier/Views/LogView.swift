@@ -19,7 +19,7 @@ struct LogView: View {
     @State private var exportErrorMessage: TextItem?
     
     var body: some View {
-        NavigationStack {
+        CompatNavigationStack {
             VStack(alignment: .leading) {
                 // Log Content
                 ScrollView {

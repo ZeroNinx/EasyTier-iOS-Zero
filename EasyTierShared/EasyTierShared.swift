@@ -1,9 +1,9 @@
 @preconcurrency import NetworkExtension
 import os
 
-public let APP_BUNDLE_ID: String = "site.yinmo.easytier"
-public let APP_GROUP_ID: String = "group.site.yinmo.easytier"
-public let ICLOUD_CONTAINER_ID: String = "iCloud.site.yinmo.easytier"
+public let APP_BUNDLE_ID: String = "com.zeroninex.easytier"
+public let APP_GROUP_ID: String = "group.com.zeroninex.easytier"
+public let ICLOUD_CONTAINER_ID: String = "iCloud.com.zeroninex.easytier"
 public let LOG_FILENAME: String = "easytier.log"
 
 public enum LogLevel: String, Codable, CaseIterable {

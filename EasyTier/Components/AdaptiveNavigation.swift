@@ -1,5 +1,38 @@
 import SwiftUI
 
+struct CompatNavigationStack<Content: View>: View {
+    private let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+#if os(iOS)
+        if #available(iOS 16.0, *) {
+            NavigationStack {
+                content
+            }
+        } else {
+            NavigationView {
+                content
+            }
+            .navigationViewStyle(.stack)
+        }
+#else
+        if #available(macOS 13.0, *) {
+            NavigationStack {
+                content
+            }
+        } else {
+            NavigationView {
+                content
+            }
+        }
+#endif
+    }
+}
+
 struct AdaptiveNavigation<PrimaryView, SecondaryView, Enum>: View where PrimaryView: View, SecondaryView: View, Enum: Identifiable & Hashable {
 #if os(macOS)
     let sizeClass = UserInterfaceSizeClass.compact
@@ -38,7 +71,7 @@ extension View {
         @ViewBuilder destination: @escaping () -> Destination
     ) -> some View {
         return self.sheet(item: item) { _ in
-            NavigationStack {
+            CompatNavigationStack {
                 destination()
                     .adaptiveNavigationBarTitleInline()
             }
