@@ -557,7 +557,7 @@ postrm
 
 必须完成：
 
-- [ ] App 能打开 GUI。
+- [x] App 能打开 GUI。
 - [x] App 能 ping daemon。
 - [x] daemon 能启动。
 - [x] daemon 能接收 `start`。
@@ -568,6 +568,7 @@ postrm
 - [x] daemon 能设置 MTU。
 - [x] daemon 能添加 EasyTier 所需 route。
 - [x] 当前设备能加入 EasyTier 网络。
+- [x] 其他节点能看到当前节点版本号和主机名。
 - [ ] 其他节点能 ping 通当前虚拟 IP。
 - [x] App 能请求 running info。
 - [x] App 能显示 daemon 日志。
@@ -611,15 +612,15 @@ postrm
 
 ## 12. 最终目标
 
-- [ ] iOS 15 越狱设备上打开 App。
-- [ ] 选择 EasyTier profile。
-- [ ] 点击连接。
-- [ ] daemon 创建 utun。
-- [ ] EasyTier Core 正常运行。
-- [ ] 当前设备加入 EasyTier 网络。
+- [x] iOS 15 越狱设备上打开 App。
+- [x] 选择 EasyTier profile。
+- [x] 点击连接。
+- [x] daemon 创建 utun。
+- [x] EasyTier Core 正常运行。
+- [x] 当前设备加入 EasyTier 网络。
 - [ ] 其他节点可访问当前设备虚拟 IP。
-- [ ] App 可查看状态。
-- [ ] App 可查看日志。
-- [ ] App 可断开连接。
-- [ ] 网络状态可被正确清理。
+- [x] App 可查看状态。
+- [x] App 可查看日志。
+- [x] App 可断开连接。
+- [x] 网络状态可被正确清理。
 - [ ] 不依赖 App Store、iCloud、Network Extension、Widget、Shortcuts。
