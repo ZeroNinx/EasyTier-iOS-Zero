@@ -9,6 +9,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::network::{apply_plan, build_plan, AppliedNetwork};
 use crate::utun::{create_utun, UtunDevice};
 
 static CORE_LOGGER_INIT: Once = Once::new();
@@ -52,7 +53,11 @@ pub struct ResponseError {
 }
 
 impl Response {
-    pub fn ok(id: impl Into<String>, status: Option<&'static str>, data: Option<ResponseData>) -> Self {
+    pub fn ok(
+        id: impl Into<String>,
+        status: Option<&'static str>,
+        data: Option<ResponseData>,
+    ) -> Self {
         Self {
             id: id.into(),
             ok: true,
@@ -62,7 +67,11 @@ impl Response {
         }
     }
 
-    pub fn error(id: impl Into<String>, code: impl Into<String>, message: impl Into<String>) -> Self {
+    pub fn error(
+        id: impl Into<String>,
+        code: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
         Self {
             id: id.into(),
             ok: false,
@@ -104,6 +113,8 @@ pub struct RuntimeState {
     started_at: Option<SystemTime>,
     last_error: Option<String>,
     utun: Option<UtunDevice>,
+    options: Option<Value>,
+    applied_network: Option<AppliedNetwork>,
 }
 
 impl Default for RuntimeState {
@@ -114,6 +125,8 @@ impl Default for RuntimeState {
             started_at: None,
             last_error: None,
             utun: None,
+            options: None,
+            applied_network: None,
         }
     }
 }
@@ -133,7 +146,7 @@ pub fn handle_request(request: Request, log_path: &Path, state: &mut RuntimeStat
         ),
         "start" => start(request, log_path, state),
         "stop" => stop(request, log_path, state),
-        "runningInfo" => running_info(request, state),
+        "runningInfo" => running_info(request, state, log_path),
         "tailLog" => {
             let limit = request.limit.unwrap_or(200).min(2000);
             let lines = tail_log(log_path, limit);
@@ -240,7 +253,9 @@ fn start(request: Request, log_path: &Path, state: &mut RuntimeState) -> Respons
     state.profile_name = Some(profile_name);
     state.started_at = Some(SystemTime::now());
     state.last_error = None;
+    state.options = Some(options);
     state.utun = Some(utun);
+    apply_network_if_ready(log_path, state);
     append_log(
         log_path,
         &format!("runtime state changed to running (core started, {utun_name} attached)"),
@@ -262,27 +277,35 @@ fn stop(request: Request, log_path: &Path, state: &mut RuntimeState) -> Response
         append_log(log_path, "core stop returned failure");
     }
 
+    if let Some(applied_network) = state.applied_network.take() {
+        applied_network.cleanup();
+        append_log(log_path, "network routes cleaned up");
+    }
     state.utun = None;
     state.status = RuntimeStatus::Stopped;
     state.profile_name = None;
     state.started_at = None;
     state.last_error = None;
+    state.options = None;
     append_log(log_path, "runtime state changed to stopped");
 
     Response::ok(request.id, Some(state.status.as_str()), None)
 }
 
-fn running_info(request: Request, state: &mut RuntimeState) -> Response {
+fn running_info(request: Request, state: &mut RuntimeState, log_path: &Path) -> Response {
     match get_core_running_info() {
-        Ok(info) => Response::ok(
-            request.id,
-            Some(state.status.as_str()),
-            Some(ResponseData {
-                lines: None,
-                version: None,
-                running_info: Some(info),
-            }),
-        ),
+        Ok(info) => {
+            apply_network_with_info(log_path, state, Some(&info));
+            Response::ok(
+                request.id,
+                Some(state.status.as_str()),
+                Some(ResponseData {
+                    lines: None,
+                    version: None,
+                    running_info: Some(info),
+                }),
+            )
+        }
         Err(error) => Response::error(request.id, "runningInfoUnavailable", error),
     }
 }
@@ -331,9 +354,11 @@ fn init_core_logger_once(log_path: &Path, options: &Value) -> Result<(), String>
 fn init_core_logger(path: &str, level: &str) -> Result<(), String> {
     let path = CString::new(path).map_err(|error| error.to_string())?;
     let level = CString::new(level).map_err(|error| error.to_string())?;
-    let subsystem = CString::new("com.zeroninex.easytier.daemon").map_err(|error| error.to_string())?;
+    let subsystem =
+        CString::new("com.zeroninex.easytier.daemon").map_err(|error| error.to_string())?;
     let mut err: *const std::ffi::c_char = std::ptr::null();
-    let ret = easytier_ios::init_logger(path.as_ptr(), level.as_ptr(), subsystem.as_ptr(), &mut err);
+    let ret =
+        easytier_ios::init_logger(path.as_ptr(), level.as_ptr(), subsystem.as_ptr(), &mut err);
     if ret == 0 {
         Ok(())
     } else {
@@ -361,6 +386,54 @@ fn get_core_running_info() -> Result<String, String> {
     }
 
     take_core_string(info).ok_or_else(|| "running info is empty".to_owned())
+}
+
+fn apply_network_if_ready(log_path: &Path, state: &mut RuntimeState) {
+    let info = get_core_running_info().ok();
+    apply_network_with_info(log_path, state, info.as_deref());
+}
+
+fn apply_network_with_info(log_path: &Path, state: &mut RuntimeState, info: Option<&str>) {
+    if state.applied_network.is_some() {
+        return;
+    }
+    let Some(utun) = state.utun.as_ref() else {
+        return;
+    };
+    let Some(options) = state.options.as_ref() else {
+        return;
+    };
+    let parsed_info = info.and_then(|info| serde_json::from_str::<Value>(info).ok());
+    let plan = match build_plan(options, parsed_info.as_ref()) {
+        Ok(Some(plan)) => plan,
+        Ok(None) => {
+            append_log(log_path, "network apply skipped: no IPv4 address yet");
+            return;
+        }
+        Err(error) => {
+            append_log(log_path, &format!("network plan failed: {error}"));
+            return;
+        }
+    };
+
+    match apply_plan(utun.name(), &plan) {
+        Ok(applied_network) => {
+            append_log(
+                log_path,
+                &format!(
+                    "network applied on {}: {}/{} routes={}",
+                    utun.name(),
+                    plan.address.address,
+                    plan.address.prefix,
+                    plan.routes.len()
+                ),
+            );
+            state.applied_network = Some(applied_network);
+        }
+        Err(error) => {
+            append_log(log_path, &format!("network apply failed: {error}"));
+        }
+    }
 }
 
 fn set_core_tun_fd(fd: std::ffi::c_int) -> Result<(), String> {

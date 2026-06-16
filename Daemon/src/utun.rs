@@ -1,9 +1,4 @@
-use std::{
-    ffi::CStr,
-    io,
-    mem,
-    os::fd::RawFd,
-};
+use std::{ffi::CStr, io, mem, os::fd::RawFd};
 
 #[derive(Debug)]
 pub struct UtunDevice {

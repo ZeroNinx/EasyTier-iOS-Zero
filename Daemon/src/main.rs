@@ -1,4 +1,5 @@
 mod ipc;
+mod network;
 mod utun;
 
 use std::{
@@ -28,12 +29,14 @@ fn main() {
 fn run() -> std::io::Result<()> {
     let paths = RuntimePaths::default();
     paths.ensure()?;
+    paths.reset_log()?;
     log_line(
         &paths,
         &format!("easytierd {} starting", env!("CARGO_PKG_VERSION")),
     );
 
-    let ipc_addr = std::env::var("EASYTIER_IPC_ADDR").unwrap_or_else(|_| DEFAULT_IPC_ADDR.to_owned());
+    let ipc_addr =
+        std::env::var("EASYTIER_IPC_ADDR").unwrap_or_else(|_| DEFAULT_IPC_ADDR.to_owned());
     log_line(&paths, &format!("binding tcp ipc on {ipc_addr}"));
     let listener = TcpListener::bind(&ipc_addr).map_err(|error| {
         log_line(&paths, &format!("bind failed on {ipc_addr}: {error}"));
@@ -113,6 +116,16 @@ impl RuntimePaths {
         fs::set_permissions(&self.runtime, fs::Permissions::from_mode(0o700))?;
         fs::set_permissions(&self.logs, fs::Permissions::from_mode(0o700))?;
         Ok(())
+    }
+
+    fn reset_log(&self) -> std::io::Result<()> {
+        fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(&self.log)?;
+        let _ = chown_mobile(&self.log);
+        fs::set_permissions(&self.log, fs::Permissions::from_mode(0o600))
     }
 }
 

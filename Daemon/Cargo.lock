@@ -1312,7 +1312,7 @@ dependencies = [
 
 [[package]]
 name = "easytier-ios"
-version = "0.1.5"
+version = "0.1.8"
 dependencies = [
  "easytier",
  "once_cell",
@@ -1326,7 +1326,7 @@ dependencies = [
 
 [[package]]
 name = "easytierd"
-version = "0.1.5"
+version = "0.1.8"
 dependencies = [
  "easytier-ios",
  "libc",

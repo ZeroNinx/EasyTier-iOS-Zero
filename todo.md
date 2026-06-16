@@ -28,7 +28,7 @@
 - [x] iCloud 配置项和 ProfileStore 的 iCloud 路径已移除。
 - [x] 主 App 日志页已从 App Group 路径迁回本地 Documents。
 - [ ] legacy Network Extension 日志导出路径仍待移除或迁移。
-- [ ] 越狱 daemon、IPC、utun、route、DNS 尚未完全实现。（daemon 已能启动/停止 EasyTier Core，utun/route/DNS 未实现）
+- [ ] 越狱 daemon、IPC、utun、route、DNS 尚未完全实现。（daemon 已能启动/停止 EasyTier Core、附加 utun，并已真机验证 IPv4/route 应用；DNS 仍未实现）
 
 当前原则：
 
@@ -243,8 +243,8 @@ Tunnel -> 虚拟网卡 / EasyTier 连接
 基础命令：
 
 - [x] `ping`
-- [x] `start`（已启动 Core，尚未附加 utun）
-- [x] `stop`（已停止 Core，尚未清理 route/DNS/utun）
+- [x] `start`（已启动 Core 并附加 utun）
+- [x] `stop`（已停止 Core，并清理本次添加的 route/utun；DNS 尚未实现）
 - [x] `version`
 - [ ] `restart`
 - [x] `status`
@@ -265,8 +265,8 @@ Tunnel -> 虚拟网卡 / EasyTier 连接
 
 安全限制：
 
-- [ ] 不允许执行任意 shell 命令。
-- [ ] 不允许传入任意可执行路径。
+- [x] 不允许执行任意 shell 命令。
+- [x] 不允许传入任意可执行路径。
 - [ ] 所有 profile 参数必须校验。
 - [ ] secret / token / password 不写入普通日志。
 - [ ] IPC endpoint 权限或访问范围限制为 App/daemon 可访问范围。
@@ -287,9 +287,9 @@ Tunnel -> 虚拟网卡 / EasyTier 连接
 
 - [x] 创建运行目录。
 - [x] 接收 IPC。
-- [x] 管理 EasyTier Core 生命周期（已接入 start/stop，utun fd 尚未附加）
-- [ ] 创建和关闭 utun。
-- [ ] 设置 IP / MTU / route。
+- [x] 管理 EasyTier Core 生命周期（已接入 start/stop 和 utun fd）
+- [x] 创建和关闭 utun。
+- [x] 设置 IP / MTU / route。（IPv4/route 已真机验证，MTU 随配置应用）
 - [x] 记录当前 runtime state。
 - [x] 写 daemon 日志。
 - [ ] 提供 cleanup 能力。
@@ -350,7 +350,7 @@ plist 草案：
 - [x] `init_logger`
 - [x] `run_network_instance`
 - [x] `stop_network_instance`
-- [ ] `set_tun_fd`
+- [x] `set_tun_fd`
 - [ ] `register_stop_callback`
 - [ ] `register_running_info_callback`
 - [x] `get_running_info`
@@ -390,18 +390,18 @@ destroy_instance
 
 目标：daemon 自己创建 utun，不依赖 `NEPacketTunnelFlow`。
 
-- [ ] 创建 utun fd。
-- [ ] 获取实际 interface name，例如 `utun3`。
+- [x] 创建 utun fd。
+- [x] 获取实际 interface name，例如 `utun3`。
 - [ ] 设置 non-blocking / close-on-exec 等 fd 属性。
-- [ ] 将 fd 交给 Rust Core。
-- [ ] stop 时关闭 fd。
+- [x] 将 fd 交给 Rust Core。
+- [x] stop 时关闭 fd。
 - [ ] daemon 重启时能处理残留状态。
 
 验收标准：
 
-- [ ] daemon 能记录 interface name。
-- [ ] Rust Core 能通过该 fd 收发包。
-- [ ] stop 后 fd 关闭，route 清理。
+- [x] daemon 能记录 interface name。
+- [x] Rust Core 能通过该 fd 收发包。
+- [x] stop 后 fd 关闭，route 清理。
 
 ### 7.2 TunnelNetworkPlan
 
@@ -426,11 +426,11 @@ struct TunnelNetworkPlan {
 
 第一阶段只实现：
 
-- [ ] IPv4 地址。
-- [ ] MTU。
-- [ ] EasyTier 虚拟网段 route。
-- [ ] 手动 route。
-- [ ] stop 清理本次添加的 route。
+- [x] IPv4 地址。
+- [x] MTU。
+- [x] EasyTier 虚拟网段 route。
+- [x] 手动 route。
+- [x] stop 清理本次添加的 route。
 
 暂缓：
 
@@ -469,19 +469,19 @@ struct TunnelNetworkPlan {
 
 实现项：
 
-- [ ] daemon 写主日志。
+- [x] daemon 写主日志。
 - [ ] Rust Core 日志进入 daemon 日志。
-- [ ] IPC 请求和结果写日志。
-- [ ] 网络操作写日志。
-- [ ] GUI 日志页从 daemon 读取最近 N 行。
+- [x] IPC 请求和结果写日志。
+- [x] 网络操作写日志。
+- [x] GUI 日志页从 daemon 读取最近 N 行。
 - [ ] 支持导出日志。
 - [ ] 支持清空日志。
 - [ ] 支持日志轮转。
 
 验收标准：
 
-- [ ] App 能显示 daemon 是否在线。
-- [ ] App 能显示 daemon 日志。
+- [x] App 能显示 daemon 是否在线。
+- [x] App 能显示 daemon 日志。
 - [ ] 日志中不泄露 secret / token / password。
 
 ### 8.2 修复网络状态
@@ -562,17 +562,17 @@ postrm
 - [x] daemon 能启动。
 - [x] daemon 能接收 `start`。
 - [x] daemon 能启动 Rust EasyTier Core。
-- [ ] daemon 能创建 utun。
-- [ ] daemon 能把 utun fd 交给 Rust Core。
-- [ ] daemon 能设置 IPv4。
-- [ ] daemon 能设置 MTU。
-- [ ] daemon 能添加 EasyTier 所需 route。
-- [ ] 当前设备能加入 EasyTier 网络。
+- [x] daemon 能创建 utun。
+- [x] daemon 能把 utun fd 交给 Rust Core。
+- [x] daemon 能设置 IPv4。
+- [x] daemon 能设置 MTU。
+- [x] daemon 能添加 EasyTier 所需 route。
+- [x] 当前设备能加入 EasyTier 网络。
 - [ ] 其他节点能 ping 通当前虚拟 IP。
-- [x] App 能请求 running info。（utun 未接入前信息不完整）
-- [ ] App 能显示 daemon 日志。
+- [x] App 能请求 running info。
+- [x] App 能显示 daemon 日志。
 - [x] App 能发送 `stop`。
-- [ ] stop 后 route 被清理。
+- [x] stop 后 route 被清理。
 - [x] stop 后 EasyTier Core 停止。
 - [x] stop 后 GUI 状态正确更新。
 
@@ -605,7 +605,7 @@ postrm
 9. [x] 实现 `ping/status/tailLog` 三个只读命令。
 10. [x] 实现 `start/stop` IPC 和 GUI 控制状态机骨架。
 11. [x] 接入 Rust Core 生命周期和 `runningInfo` IPC。
-12. [ ] 再进入 utun 创建、fd 附加和 route/DNS 应用。
+12. [x] 真机验证 IPv4/MTU/route 应用，再进入 DNS 和 cleanup 细化。
 
 ---
 
