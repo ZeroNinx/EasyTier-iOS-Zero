@@ -1,0 +1,25 @@
+#!/bin/sh
+set -e
+
+BASE="/var/mobile/Library/Application Support/EasyTier"
+PLIST="/var/jb/Library/LaunchDaemons/com.zeroninx.easytierd.plist"
+APP="/var/jb/Applications/EasyTier.app"
+
+mkdir -p "$BASE/profiles" "$BASE/logs" "$BASE/runtime" "$BASE/exports"
+chown -R mobile:mobile "$BASE" 2>/dev/null || true
+chmod 700 "$BASE" "$BASE/profiles" "$BASE/logs" "$BASE/runtime" "$BASE/exports"
+
+if [ -x /usr/bin/uicache ]; then
+    /usr/bin/uicache -p "$APP" || true
+elif [ -x /var/jb/usr/bin/uicache ]; then
+    /var/jb/usr/bin/uicache -p "$APP" || true
+fi
+
+if [ -x /bin/launchctl ] && [ -f "$PLIST" ]; then
+    /bin/launchctl bootout system "$PLIST" >/dev/null 2>&1 || true
+    /bin/launchctl bootstrap system "$PLIST" >/dev/null 2>&1 || true
+    /bin/launchctl enable system/com.zeroninx.easytierd >/dev/null 2>&1 || true
+    /bin/launchctl kickstart -k system/com.zeroninx.easytierd >/dev/null 2>&1 || true
+fi
+
+exit 0

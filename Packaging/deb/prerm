@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+PLIST="/var/jb/Library/LaunchDaemons/com.zeroninx.easytierd.plist"
+SOCKET="/var/mobile/Library/Application Support/EasyTier/runtime/easytierd.sock"
+
+if [ -x /bin/launchctl ] && [ -f "$PLIST" ]; then
+    /bin/launchctl bootout system "$PLIST" >/dev/null 2>&1 || true
+fi
+
+rm -f "$SOCKET"
+
+exit 0

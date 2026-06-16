@@ -1,0 +1,10 @@
+Package: com.zeroninx.easytier
+Name: EasyTier
+Version: 0.1.0
+Architecture: iphoneos-arm64
+Maintainer: zeroninx
+Author: zeroninx
+Section: Networking
+Priority: optional
+Description: EasyTier iOS jailbreak client.
+ A personal iOS 15+ jailbreak fork with SwiftUI GUI and easytierd daemon.

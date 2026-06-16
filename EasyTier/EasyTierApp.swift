@@ -4,9 +4,9 @@ import SwiftUI
 @main
 struct EasyTierApp: App {
     #if targetEnvironment(simulator)
-        @StateObject var manager = MockNEManager()
+        @StateObject var manager = MockTunnelManager()
     #else
-        @StateObject var manager = NetworkExtensionManager()
+        @StateObject var manager = JailbreakTunnelManager()
     #endif
 
     init() {

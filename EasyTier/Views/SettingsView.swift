@@ -1,8 +1,7 @@
 import SwiftUI
-import NetworkExtension
 import EasyTierShared
 
-struct SettingsView<Manager: NetworkExtensionManagerProtocol>: View {
+struct SettingsView<Manager: TunnelManagerProtocol>: View {
     @ObservedObject var manager: Manager
     @AppStorage("logLevel") var logLevel: LogLevel = .info
     @AppStorage("statusRefreshInterval") var statusRefreshInterval: Double = 1.0
@@ -20,6 +19,9 @@ struct SettingsView<Manager: NetworkExtensionManagerProtocol>: View {
     @State private var selectedPane: SettingsPane?
     @State private var settingsErrorMessage: TextItem?
     @State private var showResetAlert: Bool = false
+    @State private var installedDaemonURL: URL?
+    @State private var bundledDaemonAvailable = false
+    @State private var isInstallingBundledDaemon = false
     
     init(manager: Manager) {
         _manager = ObservedObject(wrappedValue: manager)
@@ -61,6 +63,9 @@ struct SettingsView<Manager: NetworkExtensionManagerProtocol>: View {
         .alert(item: $settingsErrorMessage) { msg in
             Alert(title: Text("common.error"), message: Text(msg.text))
         }
+        .onAppear {
+            refreshDaemonInstallState()
+        }
         .alert(isPresented: $showResetAlert) {
             Alert(
                 title: Text("reset_to_default"),
@@ -97,6 +102,9 @@ struct SettingsView<Manager: NetworkExtensionManagerProtocol>: View {
     var settingsContent: some View {
         Group {
             Section("general") {
+                LabeledContent("background_service_status") {
+                    Text(LocalizedStringKey(manager.status.localizationKey))
+                }
                 LabeledContent("status_refresh_rate") {
                     HStack {
                         TextField(
@@ -119,12 +127,44 @@ struct SettingsView<Manager: NetworkExtensionManagerProtocol>: View {
             }
 
             Section {
+                LabeledContent("easytierd_file") {
+                    if let installedDaemonURL {
+                        Text(installedDaemonURL.path)
+                            .font(.caption.monospaced())
+                            .multilineTextAlignment(.trailing)
+                            .textSelection(.enabled)
+                    } else {
+                        Text("daemon_not_installed")
+                            .foregroundStyle(.red)
+                    }
+                }
+                LabeledContent("daemon_bundled_file") {
+                    Text(bundledDaemonAvailable ? "available" : "not_available")
+                        .foregroundStyle(bundledDaemonAvailable ? .primary : .secondary)
+                }
+                Button {
+                    installBundledDaemon()
+                } label: {
+                    if isInstallingBundledDaemon {
+                        ProgressView()
+                    } else {
+                        Text("daemon_install_from_app")
+                    }
+                }
+                .disabled(!bundledDaemonAvailable || isInstallingBundledDaemon)
+            } header: {
+                Text("background_service")
+            } footer: {
+                Text("daemon_install_help")
+            }
+
+            Section {
                 Picker("log_level", selection: $logLevel) {
                     ForEach(LogLevel.allCases, id: \.self) { level in
                         Text(level.rawValue.uppercased()).tag(level)
                     }
                 }
-                .disabled(manager.status != .disconnected)
+                .disabled(!manager.status.allowsConfigurationChanges)
                 LabeledContent("log_preserved_lines") {
                     TextField(
                         "1000",
@@ -155,7 +195,7 @@ struct SettingsView<Manager: NetworkExtensionManagerProtocol>: View {
             } footer: {
                 Text("advanced_help")
             }
-            .disabled(manager.status != .disconnected)
+            .disabled(!manager.status.allowsConfigurationChanges)
             
             Button("reset_to_default", role: .destructive) {
                 showResetAlert = true
@@ -298,11 +338,27 @@ struct SettingsView<Manager: NetworkExtensionManagerProtocol>: View {
         .navigationTitle("about.license")
     }
 
+    private func refreshDaemonInstallState() {
+        installedDaemonURL = DaemonInstaller.installedBinaryURL()
+        bundledDaemonAvailable = DaemonInstaller.bundledBinaryURL() != nil
+    }
+
+    private func installBundledDaemon() {
+        isInstallingBundledDaemon = true
+        do {
+            installedDaemonURL = try DaemonInstaller.installBundledDaemon()
+            refreshDaemonInstallState()
+        } catch {
+            settingsErrorMessage = .init(error.localizedDescription)
+        }
+        isInstallingBundledDaemon = false
+    }
+
 }
 
 #if DEBUG && compiler(>=5.9)
 #Preview("Settings Portrait") {
-    let manager = MockNEManager()
+    let manager = MockTunnelManager()
     SettingsView(manager: manager)
         .environmentObject(manager)
 }

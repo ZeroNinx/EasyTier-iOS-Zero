@@ -23,12 +23,12 @@
 
 仍需处理：
 
-- [ ] GUI 仍以 `NetworkExtensionManager` 为运行入口。
+- [x] GUI 运行入口已从 `NetworkExtensionManager` 解耦。
 - [ ] App、Network Extension、Widget 相关 target 仍留在工程里。
 - [x] iCloud 配置项和 ProfileStore 的 iCloud 路径已移除。
 - [x] 主 App 日志页已从 App Group 路径迁回本地 Documents。
 - [ ] legacy Network Extension 日志导出路径仍待移除或迁移。
-- [ ] 越狱 daemon、IPC、utun、route、DNS 尚未实现。
+- [ ] 越狱 daemon、IPC、utun、route、DNS 尚未实现。（daemon/IPC 只读骨架已建立，utun/route/DNS 未实现）
 
 当前原则：
 
@@ -158,16 +158,16 @@ enum TunnelRuntimeStatus {
 
 迁移范围：
 
-- [ ] Dashboard 连接按钮。
-- [ ] StatusView 状态展示。
-- [ ] SettingsView 的后台服务状态。
-- [ ] 错误提示和通知。
+- [x] Dashboard 连接按钮。
+- [x] StatusView 状态展示。
+- [x] SettingsView 的后台服务状态。
+- [x] 错误提示和通知。
 
 实现方案：
 
-1. 新建 `TunnelManagerProtocol`，由 GUI 依赖协议而非具体实现。
-2. 先提供 `NetworkExtensionTunnelManagerAdapter`，包装现有 `NetworkExtensionManager`，保证 GUI 不大改即可编译。
-3. 再新增 `JailbreakTunnelManager`，通过 IPC 调 daemon。
+1. [x] 新建 `TunnelManagerProtocol`，由 GUI 依赖协议而非具体实现。
+2. [x] 先提供 `NetworkExtensionTunnelManagerAdapter`，包装现有 `NetworkExtensionManager`，保证 GUI 不大改即可编译。
+3. [x] 再新增 `JailbreakTunnelManager`，通过 IPC 调 daemon。
 4. 最终删除 adapter 和 `NetworkExtensionManager` 依赖。
 
 协议草案：
@@ -187,9 +187,9 @@ protocol TunnelManagerProtocol: ObservableObject {
 
 验收标准：
 
-- [ ] Dashboard 不直接引用 `NEVPNStatus`。
-- [ ] GUI 中连接、断开、刷新均通过 `TunnelManagerProtocol`。
-- [ ] daemon 不在线时显示“后台服务不可用”。
+- [x] Dashboard 不直接引用 `NEVPNStatus`。
+- [x] GUI 中连接、断开、刷新均通过 `TunnelManagerProtocol`。
+- [x] daemon 不在线时显示“后台服务不可用”。
 
 ### 3.2 UI 文案替换
 
@@ -205,10 +205,10 @@ Tunnel -> 虚拟网卡 / EasyTier 连接
 
 验收标准：
 
-- [ ] “VPN 状态”改为“EasyTier 状态”。
-- [ ] “重新安装 VPN 配置”改为“重启后台服务”或“修复网络状态”。
-- [ ] “扩展不可用”改为“后台服务不可用”。
-- [ ] iCloud 同步相关文案不再显示。
+- [x] “VPN 状态”改为“EasyTier 状态”。
+- [x] “重新安装 VPN 配置”改为“重启后台服务”或“修复网络状态”。
+- [x] “扩展不可用”改为“后台服务不可用”。
+- [x] iCloud 同步相关文案不再显示。
 
 ---
 
@@ -236,14 +236,14 @@ Tunnel -> 虚拟网卡 / EasyTier 连接
 
 基础命令：
 
-- [ ] `ping`
+- [x] `ping`
 - [ ] `start`
 - [ ] `stop`
 - [ ] `restart`
-- [ ] `status`
+- [x] `status`
 - [ ] `runningInfo`
 - [ ] `networkSnapshot`
-- [ ] `tailLog`
+- [x] `tailLog`
 - [ ] `exportLog`
 - [ ] `clearLog`
 - [ ] `cleanupNetwork`
@@ -278,13 +278,13 @@ Tunnel -> 虚拟网卡 / EasyTier 连接
 
 ### 5.1 daemon 职责
 
-- [ ] 创建运行目录。
-- [ ] 接收 IPC。
+- [x] 创建运行目录。
+- [x] 接收 IPC。
 - [ ] 管理 EasyTier Core 生命周期。
 - [ ] 创建和关闭 utun。
 - [ ] 设置 IP / MTU / route。
 - [ ] 记录当前 runtime state。
-- [ ] 写 daemon 日志。
+- [x] 写 daemon 日志。
 - [ ] 提供 cleanup 能力。
 
 服务名：
@@ -500,6 +500,8 @@ struct TunnelNetworkPlan {
 
 目标：个人自用 deb 包，不考虑正规 IPA 分发。
 
+当前状态：已在 `Packaging/deb/` 建立 rootless deb 打包骨架，真机安装流程仍待验证。
+
 内容：
 
 ```text
@@ -513,33 +515,33 @@ postrm
 
 要求：
 
-- [ ] rootless 优先。
+- [x] rootless 优先。
 - [ ] rootful 可选。
-- [ ] Theos 或等价打包流程。
+- [x] Theos 或等价打包流程。
 - [ ] 安装后桌面出现 EasyTier App。
-- [ ] 安装后配置目录存在。
+- [x] 安装后配置目录存在。
 - [ ] 安装后 daemon 可被 launchd 加载。
-- [ ] 卸载默认保留 profiles 和 logs。
+- [x] 卸载默认保留 profiles 和 logs。
 
 脚本职责：
 
 `postinst`：
 
-- [ ] 创建目录。
-- [ ] 设置权限。
-- [ ] 安装或重载 LaunchDaemon。
-- [ ] 可选启动 daemon。
+- [x] 创建目录。
+- [x] 设置权限。
+- [x] 安装或重载 LaunchDaemon。
+- [x] 可选启动 daemon。
 
 `prerm`：
 
-- [ ] 停止 daemon。
-- [ ] 卸载 LaunchDaemon。
-- [ ] 清理 socket。
-- [ ] 保留 profile 和 logs。
+- [x] 停止 daemon。
+- [x] 卸载 LaunchDaemon。
+- [x] 清理 socket。
+- [x] 保留 profile 和 logs。
 
 `postrm`：
 
-- [ ] 默认不删除用户配置。
+- [x] 默认不删除用户配置。
 - [ ] 如需要，单独提供彻底清理脚本。
 
 ---
@@ -588,12 +590,12 @@ postrm
 1. [x] 提交 README / TODO 文档状态。
 2. [x] 删除或隐藏 iCloud 设置入口。
 3. [x] 移除 `Info.plist` 旧 iCloud container。
-4. [ ] 新增 `TunnelRuntimeStatus` 和 `TunnelManagerProtocol`。
-5. [ ] 用 adapter 包装现有 `NetworkExtensionManager`，让 GUI 先依赖协议。
-6. [ ] 新增 `JailbreakTunnelManager` 空实现，返回 `daemonUnavailable`。
-7. [ ] 将 Dashboard / StatusView 文案从 VPN 迁到 EasyTier 后台服务。
-8. [ ] 新建 daemon 源码目录和 IPC 协议定义。
-9. [ ] 实现 `ping/status/tailLog` 三个只读命令。
+4. [x] 新增 `TunnelRuntimeStatus` 和 `TunnelManagerProtocol`。
+5. [x] 用 adapter 包装现有 `NetworkExtensionManager`，让 GUI 先依赖协议。
+6. [x] 新增 `JailbreakTunnelManager` 空实现，返回 `daemonUnavailable`。
+7. [x] 将 Dashboard / StatusView 文案从 VPN 迁到 EasyTier 后台服务。
+8. [x] 新建 daemon 源码目录和 IPC 协议定义。
+9. [x] 实现 `ping/status/tailLog` 三个只读命令。
 10. [ ] 再进入 utun 和 Rust Core 生命周期迁移。
 
 ---

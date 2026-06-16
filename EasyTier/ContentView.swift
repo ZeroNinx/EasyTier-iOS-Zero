@@ -8,7 +8,7 @@ let columnMaxWidth: CGFloat = 360
 let columnMinWidth: CGFloat = 300
 #endif
 
-struct ContentView<Manager: NetworkExtensionManagerProtocol>: View {
+struct ContentView<Manager: TunnelManagerProtocol>: View {
     @ObservedObject var manager: Manager
     @StateObject private var selectedSession = SelectedProfileSession()
     
@@ -81,13 +81,13 @@ struct ContentView<Manager: NetworkExtensionManagerProtocol>: View {
 
 #if DEBUG && compiler(>=5.9)
 #Preview("Content") {
-    let manager = MockNEManager()
+    let manager = MockTunnelManager()
     return ContentView(manager: manager)
 }
 
 @available(iOS 17.0, macOS 14.0, *)
 #Preview("Content Landscape", traits: .landscapeLeft) {
-    let manager = MockNEManager()
+    let manager = MockTunnelManager()
     ContentView(manager: manager)
 }
 #endif

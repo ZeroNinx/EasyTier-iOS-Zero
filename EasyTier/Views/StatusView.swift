@@ -7,7 +7,7 @@ import UIKit
 
 import EasyTierShared
 
-struct StatusView<Manager: NetworkExtensionManagerProtocol>: View {
+struct StatusView<Manager: TunnelManagerProtocol>: View {
     @ObservedObject var manager: Manager
     @Environment(\.scenePhase) var scenePhase
     @Environment(\.horizontalSizeClass) var sizeClass
@@ -178,9 +178,13 @@ struct StatusView<Manager: NetworkExtensionManagerProtocol>: View {
     var localStatus: some View {
         Group {
             Button {
-                manager.fetchLastNetworkSettings { settings in
-                    DispatchQueue.main.async {
+                Task { @MainActor in
+                    do {
+                        let settings = try await manager.networkSnapshot()
                         lastNetworkSettings = settings
+                        showNetworkSettings = true
+                    } catch {
+                        lastNetworkSettings = nil
                         showNetworkSettings = true
                     }
                 }
@@ -262,8 +266,12 @@ struct StatusView<Manager: NetworkExtensionManagerProtocol>: View {
     }
 
     func refreshStatus() {
-        manager.fetchRunningInfo { info in
-            status = info
+        Task { @MainActor in
+            do {
+                status = try await manager.runningInfo()
+            } catch {
+                status = nil
+            }
         }
     }
 
@@ -667,7 +675,7 @@ struct StatusBadge: View {
 
 #if DEBUG && compiler(>=5.9)
 #Preview("Status Portrait") {
-    let manager = MockNEManager()
+    let manager = MockTunnelManager()
     StatusView("Example", manager: manager)
         .environmentObject(manager)
 }

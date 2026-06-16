@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e
+
+APP="/var/jb/Applications/EasyTier.app"
+
+if [ -x /usr/bin/uicache ]; then
+    /usr/bin/uicache -p "$APP" || true
+elif [ -x /var/jb/usr/bin/uicache ]; then
+    /var/jb/usr/bin/uicache -p "$APP" || true
+fi
+
+# User profiles and logs are intentionally preserved under:
+# /var/mobile/Library/Application Support/EasyTier
+
+exit 0

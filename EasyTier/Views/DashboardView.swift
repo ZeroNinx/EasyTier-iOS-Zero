@@ -1,6 +1,5 @@
 import SwiftUI
 import Combine
-import NetworkExtension
 import os
 import TOMLKit
 import UniformTypeIdentifiers
@@ -9,7 +8,7 @@ import EasyTierShared
 private let dashboardLogger = Logger(subsystem: APP_BUNDLE_ID, category: "main.dashboard")
 private let autoSaveInterval: UInt64 = 1_200_000_000
 
-struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
+struct DashboardView<Manager: TunnelManagerProtocol>: View {
     @Environment(\.scenePhase) var scenePhase
     @ObservedObject var manager: Manager
     @ObservedObject var selectedSession: SelectedProfileSession
@@ -53,10 +52,10 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
     }
 
     var isConnected: Bool {
-        [.connected, .disconnecting, .reasserting].contains(manager.status)
+        manager.status.isConnected
     }
     var isPending: Bool {
-        isLocalPending || [.connecting, .disconnecting, .reasserting].contains(manager.status)
+        isLocalPending || manager.status.isPending
     }
     var hasSelectedProfile: Bool {
         selectedSession.session != nil
@@ -300,7 +299,8 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
                                 await manager.disconnect()
                             } else {
                                 do {
-                                    try await manager.connect()
+                                    await saveProfile()
+                                    try await manager.connect(profile: currentProfile)
                                 } catch {
                                     dashboardLogger.error("connect failed: \(error)")
                                     errorMessage = .init(error.localizedDescription)
@@ -310,7 +310,7 @@ struct DashboardView<Manager: NetworkExtensionManagerProtocol>: View {
                         }
                     } label: {
                         Label(
-                            isConnected ? "vpn_disconnect" : "vpn_connect",
+                            isConnected ? "connection_disconnect" : "connection_connect",
                             systemImage: isConnected ? "cable.connector.slash" : "cable.connector"
                         )
                         .labelStyle(.titleAndIcon)
@@ -713,7 +713,7 @@ struct IdentifiableURL: Identifiable {
 
 #if DEBUG && compiler(>=5.9)
 #Preview("Dashboard") {
-    let manager = MockNEManager()
+    let manager = MockTunnelManager()
     let selectedSession = SelectedProfileSession()
     DashboardView(manager: manager, selectedSession: selectedSession)
         .environmentObject(manager)
