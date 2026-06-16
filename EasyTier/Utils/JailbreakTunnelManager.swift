@@ -22,8 +22,9 @@ final class JailbreakTunnelManager: TunnelManagerProtocol {
                 serviceVersion = try await client.version()
                 lastError = nil
             } catch {
-                serviceVersion = nil
-                lastError = error.localizedDescription
+                if serviceVersion == nil {
+                    lastError = error.localizedDescription
+                }
             }
         } catch {
             status = .daemonUnavailable

@@ -33,20 +33,26 @@ pub struct Ipv4Cidr {
     pub prefix: u8,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NetworkPlan {
     pub address: Ipv4Cidr,
     pub mtu: Option<u64>,
     pub routes: Vec<Ipv4Cidr>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct AppliedNetwork {
     interface: String,
+    address: Ipv4Cidr,
+    mtu: Option<u64>,
     routes: Vec<Ipv4Cidr>,
 }
 
 impl AppliedNetwork {
+    pub fn matches_plan(&self, plan: &NetworkPlan) -> bool {
+        self.address == plan.address && self.mtu == plan.mtu && self.routes == plan.routes
+    }
+
     pub fn cleanup(self) {
         for route in self.routes {
             let _ = delete_route(&route);
@@ -57,6 +63,50 @@ impl AppliedNetwork {
             &[self.interface, "down".to_owned()],
         );
     }
+}
+
+pub fn sync_plan(
+    interface: &str,
+    plan: &NetworkPlan,
+    current: Option<&AppliedNetwork>,
+) -> Result<AppliedNetwork, String> {
+    let Some(current) = current else {
+        return apply_plan(interface, plan);
+    };
+    validate_interface(interface)?;
+    if current.interface != interface {
+        current.clone().cleanup();
+        return apply_plan(interface, plan);
+    }
+
+    if current.address != plan.address || current.mtu != plan.mtu {
+        configure_interface(interface, plan)?;
+    }
+
+    let current_routes = current.routes.iter().copied().collect::<HashSet<_>>();
+    let next_routes = plan.routes.iter().copied().collect::<HashSet<_>>();
+    let mut added_routes = Vec::new();
+
+    for route in next_routes.difference(&current_routes) {
+        if let Err(error) = add_route(route, interface) {
+            for added_route in added_routes {
+                let _ = delete_route(&added_route);
+            }
+            return Err(error);
+        }
+        added_routes.push(*route);
+    }
+
+    for route in current_routes.difference(&next_routes) {
+        let _ = delete_route(route);
+    }
+
+    Ok(AppliedNetwork {
+        interface: interface.to_owned(),
+        address: plan.address,
+        mtu: plan.mtu,
+        routes: plan.routes.clone(),
+    })
 }
 
 pub fn build_plan(
@@ -139,25 +189,7 @@ pub fn build_plan(
 
 pub fn apply_plan(interface: &str, plan: &NetworkPlan) -> Result<AppliedNetwork, String> {
     validate_interface(interface)?;
-
-    let netmask = prefix_to_netmask(plan.address.prefix)?;
-    let mut ifconfig_args = vec![
-        interface.to_owned(),
-        "inet".to_owned(),
-        plan.address.address.to_string(),
-        plan.address.address.to_string(),
-        "netmask".to_owned(),
-        netmask.to_string(),
-    ];
-    if let Some(mtu) = plan.mtu {
-        if mtu == 0 || mtu > 9000 {
-            return Err(format!("invalid mtu: {mtu}"));
-        }
-        ifconfig_args.push("mtu".to_owned());
-        ifconfig_args.push(mtu.to_string());
-    }
-    ifconfig_args.push("up".to_owned());
-    run(IFCONFIG_CANDIDATES, "ifconfig", &ifconfig_args)?;
+    configure_interface(interface, plan)?;
 
     let mut applied_routes = Vec::new();
     for route in &plan.routes {
@@ -177,8 +209,31 @@ pub fn apply_plan(interface: &str, plan: &NetworkPlan) -> Result<AppliedNetwork,
 
     Ok(AppliedNetwork {
         interface: interface.to_owned(),
+        address: plan.address,
+        mtu: plan.mtu,
         routes: applied_routes,
     })
+}
+
+fn configure_interface(interface: &str, plan: &NetworkPlan) -> Result<(), String> {
+    let netmask = prefix_to_netmask(plan.address.prefix)?;
+    let mut ifconfig_args = vec![
+        interface.to_owned(),
+        "inet".to_owned(),
+        plan.address.address.to_string(),
+        plan.address.address.to_string(),
+        "netmask".to_owned(),
+        netmask.to_string(),
+    ];
+    if let Some(mtu) = plan.mtu {
+        if mtu == 0 || mtu > 9000 {
+            return Err(format!("invalid mtu: {mtu}"));
+        }
+        ifconfig_args.push("mtu".to_owned());
+        ifconfig_args.push(mtu.to_string());
+    }
+    ifconfig_args.push("up".to_owned());
+    run(IFCONFIG_CANDIDATES, "ifconfig", &ifconfig_args)
 }
 
 fn add_route(route: &Ipv4Cidr, interface: &str) -> Result<(), String> {

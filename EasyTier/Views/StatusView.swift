@@ -268,9 +268,22 @@ struct StatusView<Manager: TunnelManagerProtocol>: View {
     func refreshStatus() {
         Task { @MainActor in
             do {
-                status = try await manager.runningInfo()
+                if let nextStatus = try await manager.runningInfo() {
+                    status = nextStatus
+                }
             } catch {
-                status = nil
+                if status == nil {
+                    status = NetworkStatus(
+                        devName: "",
+                        myNodeInfo: nil,
+                        events: [],
+                        routes: [],
+                        peers: [],
+                        peerRoutePairs: [],
+                        running: manager.status.isConnected,
+                        errorMsg: error.localizedDescription
+                    )
+                }
             }
         }
     }
@@ -405,7 +418,7 @@ struct RemotePeerRowView: View {
         let latencies = pair.peer?.conns.compactMap {
             $0.stats?.latencyUs
         }
-        guard let latencies else { return nil }
+        guard let latencies, !latencies.isEmpty else { return nil }
         return Double(latencies.reduce(0, +)) / Double(latencies.count)
     }
 
@@ -413,7 +426,7 @@ struct RemotePeerRowView: View {
         let lossRates = pair.peer?.conns.compactMap {
             $0.lossRate
         }
-        guard let lossRates else { return nil }
+        guard let lossRates, !lossRates.isEmpty else { return nil }
         return lossRates.reduce(0, +) / Double(lossRates.count)
     }
 
@@ -520,8 +533,8 @@ struct TrafficItem: View {
         case Rx
     }
 
-	    var unifiedValue: Double {
-	        guard let diff else { return Double.nan }
+    var unifiedValue: Double {
+        guard let diff else { return 0 }
 	        let v = Double(diff)
 	        switch abs(v) {
 	        case ..<1024:
@@ -585,20 +598,24 @@ struct TrafficItem: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .onChange(of: value) { newValue in
             guard let newValue else { return }
-            guard let lastTime else {
-                lastTime = Date()
-                return
-            }
             guard let previousValue else {
                 self.lastTime = Date()
-                previousValue = newValue
+                self.previousValue = newValue
+                diff = 0
                 return
             }
             let currentTime = Date()
-            let interval = currentTime.timeIntervalSince(lastTime)
+            let interval = currentTime.timeIntervalSince(lastTime ?? currentTime)
             self.lastTime = currentTime
-            diff = max(Double(newValue - previousValue) / interval, 0)
-            $previousValue.wrappedValue = newValue
+            diff = interval > 0 ? max(Double(newValue - previousValue) / interval, 0) : 0
+            self.previousValue = newValue
+        }
+        .onAppear {
+            if let value, previousValue == nil {
+                previousValue = value
+                lastTime = Date()
+                diff = 0
+            }
         }
     }
 }

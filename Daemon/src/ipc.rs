@@ -1,6 +1,7 @@
 use std::{
     ffi::{CStr, CString},
     fs,
+    os::fd::RawFd,
     path::Path,
     sync::Once,
     time::SystemTime,
@@ -9,7 +10,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::network::{apply_plan, build_plan, AppliedNetwork};
+use crate::network::{build_plan, sync_plan, AppliedNetwork};
 use crate::utun::{create_utun, UtunDevice};
 
 static CORE_LOGGER_INIT: Once = Once::new();
@@ -113,6 +114,7 @@ pub struct RuntimeState {
     started_at: Option<SystemTime>,
     last_error: Option<String>,
     utun: Option<UtunDevice>,
+    core_tun_fd: Option<RawFd>,
     options: Option<Value>,
     applied_network: Option<AppliedNetwork>,
 }
@@ -125,6 +127,7 @@ impl Default for RuntimeState {
             started_at: None,
             last_error: None,
             utun: None,
+            core_tun_fd: None,
             options: None,
             applied_network: None,
         }
@@ -254,6 +257,7 @@ fn start(request: Request, log_path: &Path, state: &mut RuntimeState) -> Respons
     state.started_at = Some(SystemTime::now());
     state.last_error = None;
     state.options = Some(options);
+    state.core_tun_fd = Some(core_fd);
     state.utun = Some(utun);
     apply_network_if_ready(log_path, state);
     append_log(
@@ -271,6 +275,8 @@ fn stop(request: Request, log_path: &Path, state: &mut RuntimeState) -> Response
 
     state.status = RuntimeStatus::Stopping;
     append_log(log_path, "stop requested");
+
+    clear_core_tun_fd(log_path, state);
 
     let stop_result = easytier_ios::stop_network_instance();
     if stop_result != 0 {
@@ -394,9 +400,6 @@ fn apply_network_if_ready(log_path: &Path, state: &mut RuntimeState) {
 }
 
 fn apply_network_with_info(log_path: &Path, state: &mut RuntimeState, info: Option<&str>) {
-    if state.applied_network.is_some() {
-        return;
-    }
     let Some(utun) = state.utun.as_ref() else {
         return;
     };
@@ -416,23 +419,45 @@ fn apply_network_with_info(log_path: &Path, state: &mut RuntimeState, info: Opti
         }
     };
 
-    match apply_plan(utun.name(), &plan) {
+    let previous_matches = state
+        .applied_network
+        .as_ref()
+        .map(|network| network.matches_plan(&plan))
+        .unwrap_or(false);
+    match sync_plan(utun.name(), &plan, state.applied_network.as_ref()) {
         Ok(applied_network) => {
-            append_log(
-                log_path,
-                &format!(
-                    "network applied on {}: {}/{} routes={}",
-                    utun.name(),
-                    plan.address.address,
-                    plan.address.prefix,
-                    plan.routes.len()
-                ),
-            );
+            if !previous_matches {
+                append_log(
+                    log_path,
+                    &format!(
+                        "network applied on {}: {}/{} routes={}",
+                        utun.name(),
+                        plan.address.address,
+                        plan.address.prefix,
+                        plan.routes.len()
+                    ),
+                );
+            }
             state.applied_network = Some(applied_network);
         }
         Err(error) => {
             append_log(log_path, &format!("network apply failed: {error}"));
         }
+    }
+}
+
+fn clear_core_tun_fd(log_path: &Path, state: &mut RuntimeState) {
+    if state.core_tun_fd.is_none() {
+        return;
+    }
+    if let Err(error) = set_core_tun_fd(0) {
+        append_log(log_path, &format!("clear core tun fd failed: {error}"));
+    }
+    if let Some(fd) = state.core_tun_fd.take() {
+        unsafe {
+            libc::close(fd);
+        }
+        append_log(log_path, "core tun fd closed");
     }
 }
 

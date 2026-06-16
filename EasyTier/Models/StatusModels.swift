@@ -1,6 +1,31 @@
 import Foundation
 import SwiftUI
 
+private struct LossyArray<Element: Decodable>: Decodable {
+    var elements: [Element] = []
+
+    init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        while !container.isAtEnd {
+            if let value = try? container.decode(Element.self) {
+                elements.append(value)
+            } else {
+                _ = try? container.decode(DiscardedValue.self)
+            }
+        }
+    }
+}
+
+private struct DiscardedValue: Decodable {
+    init(from decoder: Decoder) throws {}
+}
+
+private extension KeyedDecodingContainer {
+    func decodeLossyArray<Element: Decodable>(_ type: Element.Type, forKey key: Key) -> [Element] {
+        (try? decodeIfPresent(LossyArray<Element>.self, forKey: key)?.elements) ?? []
+    }
+}
+
 struct NetworkStatus: Codable {
     enum NATType: Int, Codable {
         case unknown = 0
@@ -98,6 +123,17 @@ struct NetworkStatus: Codable {
             case quicInput = "quic_input"
             case noRelayQuic = "no_relay_quic"
         }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            isPublicServer = try container.decodeIfPresent(Bool.self, forKey: .isPublicServer) ?? false
+            avoidRelayData = try container.decodeIfPresent(Bool.self, forKey: .avoidRelayData) ?? false
+            kcpInput = try container.decodeIfPresent(Bool.self, forKey: .kcpInput) ?? false
+            noRelayKcp = try container.decodeIfPresent(Bool.self, forKey: .noRelayKcp) ?? false
+            supportConnListSync = try container.decodeIfPresent(Bool.self, forKey: .supportConnListSync) ?? false
+            quicInput = try container.decodeIfPresent(Bool.self, forKey: .quicInput) ?? false
+            noRelayQuic = try container.decodeIfPresent(Bool.self, forKey: .noRelayQuic) ?? false
+        }
     }
 
     struct IPv4Addr: Codable, Hashable, CustomStringConvertible {
@@ -112,6 +148,25 @@ struct NetworkStatus: Codable {
             self.addr = addr
         }
 
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            if let value = try? container.decode(UInt32.self) {
+                addr = value
+                return
+            }
+            if let value = try? container.decode(String.self),
+               let parsed = IPv4Addr(value) {
+                addr = parsed.addr
+                return
+            }
+            let keyed = try decoder.container(keyedBy: CodingKeys.self)
+            addr = try keyed.decodeIfPresent(UInt32.self, forKey: .addr) ?? 0
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case addr
+        }
+
         var description: String {
             let ip = addr
             return
@@ -123,6 +178,11 @@ struct NetworkStatus: Codable {
         var address: IPv4Addr
         var networkLength: Int
 
+        init(address: IPv4Addr, networkLength: Int) {
+            self.address = address
+            self.networkLength = networkLength
+        }
+
         var description: String {
             return "\(address.description)/\(networkLength)"
         }
@@ -130,6 +190,22 @@ struct NetworkStatus: Codable {
         enum CodingKeys: String, CodingKey {
             case address
             case networkLength = "network_length"
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            if let value = try? container.decode(String.self) {
+                let parts = value.split(separator: "/", maxSplits: 1)
+                if let address = IPv4Addr(String(parts.first ?? "")) {
+                    self.address = address
+                    networkLength = parts.count > 1 ? Int(parts[1]) ?? 32 : 32
+                    return
+                }
+            }
+
+            let keyed = try decoder.container(keyedBy: CodingKeys.self)
+            address = try keyed.decodeIfPresent(IPv4Addr.self, forKey: .address) ?? IPv4Addr("0.0.0.0")!
+            networkLength = try keyed.decodeIfPresent(Int.self, forKey: .networkLength) ?? 32
         }
     }
 
@@ -197,6 +273,32 @@ struct NetworkStatus: Codable {
 
     struct Url: Codable, Hashable {
         var url: String
+
+        init(url: String) {
+            self.url = url
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            if let value = try? container.decode(String.self) {
+                url = value
+                return
+            }
+            let keyed = try decoder.container(keyedBy: CodingKeys.self)
+            url = (try? keyed.decode(String.self, forKey: CodingKeys.url))
+                ?? (try? keyed.decode(String.self, forKey: CodingKeys.serialization))
+                ?? ""
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case url
+            case serialization
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(url, forKey: .url)
+        }
     }
 
     struct MyNodeInfo: Codable {
@@ -213,6 +315,30 @@ struct NetworkStatus: Codable {
                 case publicIPv6 = "public_ipv6"
                 case interfaceIPv6s = "interface_ipv6s"
                 case listeners
+            }
+
+            init(
+                publicIPv4: IPv4Addr?,
+                interfaceIPv4s: [IPv4Addr]?,
+                publicIPv6: IPv6Addr?,
+                interfaceIPv6s: [IPv6Addr]?,
+                listeners: [Url]? = nil
+            ) {
+                self.publicIPv4 = publicIPv4
+                self.interfaceIPv4s = interfaceIPv4s
+                self.publicIPv6 = publicIPv6
+                self.interfaceIPv6s = interfaceIPv6s
+                self.listeners = listeners
+            }
+
+            init(from decoder: Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                publicIPv4 = try container.decodeIfPresent(IPv4Addr.self, forKey: .publicIPv4)
+                interfaceIPv4s = container.decodeLossyArray(IPv4Addr.self, forKey: .interfaceIPv4s)
+                publicIPv6 = try container.decodeIfPresent(IPv6Addr.self, forKey: .publicIPv6)
+                interfaceIPv6s = container.decodeLossyArray(IPv6Addr.self, forKey: .interfaceIPv6s)
+                let decodedListeners = container.decodeLossyArray(Url.self, forKey: .listeners)
+                listeners = decodedListeners.isEmpty ? nil : decodedListeners
             }
         }
         var virtualIPv4: IPv4CIDR?
@@ -232,6 +358,39 @@ struct NetworkStatus: Codable {
             case listeners
             case vpnPortalCfg = "vpn_portal_cfg"
             case peerID = "peer_id"
+        }
+
+        init(
+            virtualIPv4: IPv4CIDR?,
+            hostname: String,
+            version: String,
+            ips: IPList?,
+            stunInfo: STUNInfo?,
+            listeners: [Url]? = nil,
+            vpnPortalCfg: String?,
+            peerID: Int?
+        ) {
+            self.virtualIPv4 = virtualIPv4
+            self.hostname = hostname
+            self.version = version
+            self.ips = ips
+            self.stunInfo = stunInfo
+            self.listeners = listeners
+            self.vpnPortalCfg = vpnPortalCfg
+            self.peerID = peerID
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            virtualIPv4 = try container.decodeIfPresent(IPv4CIDR.self, forKey: .virtualIPv4)
+            hostname = try container.decodeIfPresent(String.self, forKey: .hostname) ?? ""
+            version = try container.decodeIfPresent(String.self, forKey: .version) ?? ""
+            ips = try container.decodeIfPresent(IPList.self, forKey: .ips)
+            stunInfo = try container.decodeIfPresent(STUNInfo.self, forKey: .stunInfo)
+            let decodedListeners = container.decodeLossyArray(Url.self, forKey: .listeners)
+            listeners = decodedListeners.isEmpty ? nil : decodedListeners
+            vpnPortalCfg = try container.decodeIfPresent(String.self, forKey: .vpnPortalCfg)
+            peerID = try container.decodeIfPresent(Int.self, forKey: .peerID)
         }
     }
 
@@ -322,6 +481,59 @@ struct NetworkStatus: Codable {
             case pathLatencyLatencyFirst = "path_latency_latency_first"
             case featureFlag = "feature_flag"
         }
+
+        init(
+            peerId: Int,
+            ipv4Addr: IPv4CIDR? = nil,
+            ipv6Addr: IPv6CIDR? = nil,
+            nextHopPeerId: Int,
+            cost: Int,
+            pathLatency: Int,
+            proxyCIDRs: [String] = [],
+            hostname: String,
+            stunInfo: STUNInfo? = nil,
+            instId: String,
+            version: String,
+            nextHopPeerIdLatencyFirst: UInt? = nil,
+            costLatencyFirst: Int? = nil,
+            pathLatencyLatencyFirst: Int? = nil,
+            featureFlag: PeerFeatureFlag? = nil
+        ) {
+            self.peerId = peerId
+            self.ipv4Addr = ipv4Addr
+            self.ipv6Addr = ipv6Addr
+            self.nextHopPeerId = nextHopPeerId
+            self.cost = cost
+            self.pathLatency = pathLatency
+            self.proxyCIDRs = proxyCIDRs
+            self.hostname = hostname
+            self.stunInfo = stunInfo
+            self.instId = instId
+            self.version = version
+            self.nextHopPeerIdLatencyFirst = nextHopPeerIdLatencyFirst
+            self.costLatencyFirst = costLatencyFirst
+            self.pathLatencyLatencyFirst = pathLatencyLatencyFirst
+            self.featureFlag = featureFlag
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            peerId = try container.decodeIfPresent(Int.self, forKey: .peerId) ?? 0
+            ipv4Addr = try container.decodeIfPresent(IPv4CIDR.self, forKey: .ipv4Addr)
+            ipv6Addr = try container.decodeIfPresent(IPv6CIDR.self, forKey: .ipv6Addr)
+            nextHopPeerId = try container.decodeIfPresent(Int.self, forKey: .nextHopPeerId) ?? 0
+            cost = try container.decodeIfPresent(Int.self, forKey: .cost) ?? 0
+            pathLatency = try container.decodeIfPresent(Int.self, forKey: .pathLatency) ?? 0
+            proxyCIDRs = try container.decodeIfPresent([String].self, forKey: .proxyCIDRs) ?? []
+            hostname = try container.decodeIfPresent(String.self, forKey: .hostname) ?? ""
+            stunInfo = try container.decodeIfPresent(STUNInfo.self, forKey: .stunInfo)
+            instId = try container.decodeIfPresent(String.self, forKey: .instId) ?? ""
+            version = try container.decodeIfPresent(String.self, forKey: .version) ?? ""
+            nextHopPeerIdLatencyFirst = try container.decodeIfPresent(UInt.self, forKey: .nextHopPeerIdLatencyFirst)
+            costLatencyFirst = try container.decodeIfPresent(Int.self, forKey: .costLatencyFirst)
+            pathLatencyLatencyFirst = try container.decodeIfPresent(Int.self, forKey: .pathLatencyLatencyFirst)
+            featureFlag = try container.decodeIfPresent(PeerFeatureFlag.self, forKey: .featureFlag)
+        }
     }
 
     struct PeerInfo: Codable, Hashable, Identifiable {
@@ -336,6 +548,21 @@ struct NetworkStatus: Codable {
             case conns
             case defaultConnId = "default_conn_id"
             case directlyConnectedConns = "directly_connected_conns"
+        }
+
+        init(peerId: Int, conns: [PeerConnInfo], defaultConnId: UUID? = nil, directlyConnectedConns: [UUID] = []) {
+            self.peerId = peerId
+            self.conns = conns
+            self.defaultConnId = defaultConnId
+            self.directlyConnectedConns = directlyConnectedConns
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            peerId = try container.decodeIfPresent(Int.self, forKey: .peerId) ?? 0
+            conns = container.decodeLossyArray(PeerConnInfo.self, forKey: .conns)
+            defaultConnId = try? container.decodeIfPresent(UUID.self, forKey: .defaultConnId)
+            directlyConnectedConns = container.decodeLossyArray(UUID.self, forKey: .directlyConnectedConns)
         }
     }
 
@@ -361,6 +588,44 @@ struct NetworkStatus: Codable {
             case networkName = "network_name"
             case isClosed = "is_closed"
         }
+
+        init(
+            connId: String,
+            myPeerId: Int,
+            isClient: Bool,
+            peerId: Int,
+            features: [String],
+            tunnel: TunnelInfo?,
+            stats: PeerConnStats?,
+            lossRate: Double,
+            networkName: String? = nil,
+            isClosed: Bool? = nil
+        ) {
+            self.connId = connId
+            self.myPeerId = myPeerId
+            self.isClient = isClient
+            self.peerId = peerId
+            self.features = features
+            self.tunnel = tunnel
+            self.stats = stats
+            self.lossRate = lossRate
+            self.networkName = networkName
+            self.isClosed = isClosed
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            connId = try container.decodeIfPresent(String.self, forKey: .connId) ?? ""
+            myPeerId = try container.decodeIfPresent(Int.self, forKey: .myPeerId) ?? 0
+            isClient = try container.decodeIfPresent(Bool.self, forKey: .isClient) ?? false
+            peerId = try container.decodeIfPresent(Int.self, forKey: .peerId) ?? 0
+            features = try container.decodeIfPresent([String].self, forKey: .features) ?? []
+            tunnel = try? container.decodeIfPresent(TunnelInfo.self, forKey: .tunnel)
+            stats = try? container.decodeIfPresent(PeerConnStats.self, forKey: .stats)
+            lossRate = try container.decodeIfPresent(Double.self, forKey: .lossRate) ?? 0
+            networkName = try container.decodeIfPresent(String.self, forKey: .networkName)
+            isClosed = try container.decodeIfPresent(Bool.self, forKey: .isClosed)
+        }
     }
 
     struct PeerRoutePair: Codable, Hashable, Identifiable {
@@ -374,10 +639,23 @@ struct NetworkStatus: Codable {
         var localAddr: Url
         var remoteAddr: Url
 
+        init(tunnelType: String, localAddr: Url, remoteAddr: Url) {
+            self.tunnelType = tunnelType
+            self.localAddr = localAddr
+            self.remoteAddr = remoteAddr
+        }
+
         enum CodingKeys: String, CodingKey {
             case tunnelType = "tunnel_type"
             case localAddr = "local_addr"
             case remoteAddr = "remote_addr"
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            tunnelType = try container.decodeIfPresent(String.self, forKey: .tunnelType) ?? ""
+            localAddr = (try? container.decodeIfPresent(Url.self, forKey: .localAddr)) ?? Url(url: "")
+            remoteAddr = (try? container.decodeIfPresent(Url.self, forKey: .remoteAddr)) ?? Url(url: "")
         }
     }
 
@@ -394,6 +672,23 @@ struct NetworkStatus: Codable {
             case rxPackets = "rx_packets"
             case txPackets = "tx_packets"
             case latencyUs = "latency_us"
+        }
+
+        init(rxBytes: Int, txBytes: Int, rxPackets: Int, txPackets: Int, latencyUs: Int) {
+            self.rxBytes = rxBytes
+            self.txBytes = txBytes
+            self.rxPackets = rxPackets
+            self.txPackets = txPackets
+            self.latencyUs = latencyUs
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            rxBytes = try container.decodeIfPresent(Int.self, forKey: .rxBytes) ?? 0
+            txBytes = try container.decodeIfPresent(Int.self, forKey: .txBytes) ?? 0
+            rxPackets = try container.decodeIfPresent(Int.self, forKey: .rxPackets) ?? 0
+            txPackets = try container.decodeIfPresent(Int.self, forKey: .txPackets) ?? 0
+            latencyUs = try container.decodeIfPresent(Int.self, forKey: .latencyUs) ?? 0
         }
     }
 
@@ -439,9 +734,9 @@ struct NetworkStatus: Codable {
         devName = try container.decodeIfPresent(String.self, forKey: .devName) ?? ""
         myNodeInfo = try container.decodeIfPresent(MyNodeInfo.self, forKey: .myNodeInfo)
         events = try container.decodeIfPresent([String].self, forKey: .events) ?? []
-        routes = try container.decodeIfPresent([Route].self, forKey: .routes) ?? []
-        peers = try container.decodeIfPresent([PeerInfo].self, forKey: .peers) ?? []
-        peerRoutePairs = try container.decodeIfPresent([PeerRoutePair].self, forKey: .peerRoutePairs) ?? []
+        routes = container.decodeLossyArray(Route.self, forKey: .routes)
+        peers = container.decodeLossyArray(PeerInfo.self, forKey: .peers)
+        peerRoutePairs = container.decodeLossyArray(PeerRoutePair.self, forKey: .peerRoutePairs)
         running = try container.decodeIfPresent(Bool.self, forKey: .running) ?? false
         errorMsg = try container.decodeIfPresent(String.self, forKey: .errorMsg)
     }

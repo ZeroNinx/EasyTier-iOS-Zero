@@ -7,7 +7,7 @@ REPO_ROOT="$(cd "$DEB_DIR/../.." && pwd)"
 
 APP_PATH="${1:-${APP_PATH:-}}"
 DAEMON_BIN="${2:-${DAEMON_BIN:-}}"
-VERSION="${VERSION:-0.1.8}"
+VERSION="${VERSION:-0.1.10}"
 PACKAGE_ID="com.zeroninx.easytier"
 APP_ENTITLEMENTS="$DEB_DIR/Entitlements/app.plist"
 DAEMON_ENTITLEMENTS="$DEB_DIR/Entitlements/daemon.plist"

@@ -163,7 +163,11 @@ final class JailbreakIPCClient {
               let data = rawInfo.data(using: .utf8) else {
             return nil
         }
-        return try? JSONDecoder().decode(NetworkStatus.self, from: data)
+        do {
+            return try JSONDecoder().decode(NetworkStatus.self, from: data)
+        } catch {
+            throw JailbreakIPCError.daemonError("Running info decode failed: \(error.localizedDescription)")
+        }
     }
 
     private func send(_ request: JailbreakIPCRequest) async throws -> JailbreakIPCResponse {
