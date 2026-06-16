@@ -39,9 +39,9 @@ enum JailbreakIPCCommand {
 }
 
 enum JailbreakIPCError: LocalizedError {
-    case invalidSocketPath
+    case invalidEndpoint(String)
     case socketFailed(String)
-    case connectFailed(path: String, message: String)
+    case connectFailed(endpoint: String, message: String)
     case writeFailed(String)
     case readFailed(String)
     case invalidResponse
@@ -49,12 +49,12 @@ enum JailbreakIPCError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidSocketPath:
-            return "Invalid daemon socket path."
+        case .invalidEndpoint(let endpoint):
+            return "Invalid daemon IPC endpoint: \(endpoint)"
         case .socketFailed(let message):
             return "Failed to create IPC socket: \(message)"
-        case .connectFailed(let path, let message):
-            return "Failed to connect daemon socket at \(path): \(message)"
+        case .connectFailed(let endpoint, let message):
+            return "Failed to connect daemon IPC endpoint \(endpoint): \(message)"
         case .writeFailed(let message):
             return "Failed to write IPC request: \(message)"
         case .readFailed(let message):
@@ -68,10 +68,12 @@ enum JailbreakIPCError: LocalizedError {
 }
 
 final class JailbreakIPCClient {
-    private let socketURL: URL
+    private let host: String
+    private let port: UInt16
 
-    init(socketURL: URL = AppPaths.daemonSocketURL) {
-        self.socketURL = socketURL
+    init(host: String = AppPaths.daemonIPCAddress, port: UInt16 = AppPaths.daemonIPCPort) {
+        self.host = host
+        self.port = port
     }
 
     func ping() async throws {
@@ -104,36 +106,33 @@ final class JailbreakIPCClient {
     }
 
     private func sendSync(_ request: JailbreakIPCRequest) throws -> JailbreakIPCResponse {
-        let path = socketURL.path
-        guard path.utf8.count < MemoryLayout.size(ofValue: sockaddr_un().sun_path) else {
-            throw JailbreakIPCError.invalidSocketPath
-        }
+        let endpoint = "\(host):\(port)"
 
-        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        let fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)
         guard fd >= 0 else {
             throw JailbreakIPCError.socketFailed(String(cString: strerror(errno)))
         }
         defer { close(fd) }
 
-        var address = sockaddr_un()
-        let sunPathSize = MemoryLayout.size(ofValue: address.sun_path)
-        address.sun_family = sa_family_t(AF_UNIX)
-        _ = withUnsafeMutablePointer(to: &address.sun_path) { pointer in
-            pointer.withMemoryRebound(to: CChar.self, capacity: sunPathSize) { buffer in
-                path.withCString { source in
-                    strncpy(buffer, source, sunPathSize - 1)
-                }
-            }
+        var address = sockaddr_in()
+        address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+        address.sin_family = sa_family_t(AF_INET)
+        address.sin_port = in_port_t(port).bigEndian
+        let parseResult = host.withCString { source in
+            inet_pton(AF_INET, source, &address.sin_addr)
+        }
+        guard parseResult == 1 else {
+            throw JailbreakIPCError.invalidEndpoint(endpoint)
         }
 
         let connectResult = withUnsafePointer(to: &address) { pointer in
             pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockaddrPointer in
-                Darwin.connect(fd, sockaddrPointer, socklen_t(MemoryLayout<sockaddr_un>.size))
+                Darwin.connect(fd, sockaddrPointer, socklen_t(MemoryLayout<sockaddr_in>.size))
             }
         }
         guard connectResult == 0 else {
             throw JailbreakIPCError.connectFailed(
-                path: path,
+                endpoint: endpoint,
                 message: String(cString: strerror(errno))
             )
         }

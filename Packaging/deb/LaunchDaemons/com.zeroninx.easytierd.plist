@@ -8,10 +8,25 @@
     <array>
         <string>/var/jb/usr/bin/easytierd</string>
     </array>
+    <key>UserName</key>
+    <string>root</string>
+    <key>GroupName</key>
+    <string>wheel</string>
+    <key>WorkingDirectory</key>
+    <string>/var/mobile/Library/Application Support/EasyTier</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>EASYTIER_BASE_DIR</key>
+        <string>/var/mobile/Library/Application Support/EasyTier</string>
+        <key>EASYTIER_IPC_ADDR</key>
+        <string>127.0.0.1:37657</string>
+    </dict>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
     <true/>
+    <key>ThrottleInterval</key>
+    <integer>3</integer>
     <key>StandardOutPath</key>
     <string>/var/mobile/Library/Application Support/EasyTier/logs/easytierd.stdout.log</string>
     <key>StandardErrorPath</key>

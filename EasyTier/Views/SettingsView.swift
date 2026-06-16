@@ -59,7 +59,7 @@ struct SettingsView<Manager: TunnelManagerProtocol>: View {
 #endif
         }
         .onAppear {
-            refreshDaemonDetectionState()
+            refreshBackgroundServiceState()
         }
         .alert(isPresented: $showResetAlert) {
             Alert(
@@ -146,7 +146,7 @@ struct SettingsView<Manager: TunnelManagerProtocol>: View {
                         .textSelection(.enabled)
                 }
                 Button("daemon_refresh_detection") {
-                    refreshDaemonDetectionState()
+                    refreshBackgroundServiceState()
                 }
             } header: {
                 Text("background_service")
@@ -338,6 +338,13 @@ struct SettingsView<Manager: TunnelManagerProtocol>: View {
         let state = DaemonDetector.detectionState()
         detectedDaemonURL = state.detectedURL
         daemonDetectionDetails = state.details
+    }
+
+    private func refreshBackgroundServiceState() {
+        refreshDaemonDetectionState()
+        Task { @MainActor in
+            await manager.refreshStatus()
+        }
     }
 
 }

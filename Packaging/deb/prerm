@@ -3,11 +3,18 @@ set -e
 
 PLIST="/var/jb/Library/LaunchDaemons/com.zeroninx.easytierd.plist"
 SOCKET="/var/mobile/Library/Application Support/EasyTier/runtime/easytierd.sock"
+PKG_LOG="/var/mobile/Library/Application Support/EasyTier/logs/package.log"
+
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') prerm: $*" >> "$PKG_LOG"
+}
 
 if [ -x /bin/launchctl ] && [ -f "$PLIST" ]; then
-    /bin/launchctl bootout system "$PLIST" >/dev/null 2>&1 || true
+    log "bootout system $PLIST"
+    /bin/launchctl bootout system "$PLIST" >> "$PKG_LOG" 2>&1 || log "bootout failed"
 fi
 
 rm -f "$SOCKET"
+log "removed legacy socket if present"
 
 exit 0

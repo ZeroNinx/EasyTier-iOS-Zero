@@ -15,6 +15,7 @@ DAEMON_ENTITLEMENTS="$DEB_DIR/Entitlements/daemon.plist"
 usage() {
     echo "Usage: $0 [/path/to/EasyTier.app] [/path/to/easytierd]" >&2
     echo "Or set APP_PATH and DAEMON_BIN." >&2
+    echo "For a full local build, use: $SCRIPT_DIR/build_full_deb.sh" >&2
 }
 
 is_ios_arm64_binary() {
@@ -86,7 +87,7 @@ if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
     usage
     echo "" >&2
     echo "Build it first, for example:" >&2
-    echo "  xcodebuild -project \"$REPO_ROOT/EasyTier.xcodeproj\" -scheme EasyTier -configuration Debug -sdk iphoneos build" >&2
+    echo "  xcodebuild -project \"$REPO_ROOT/EasyTier.xcodeproj\" -scheme EasyTier -configuration Debug -sdk iphoneos -destination 'generic/platform=iOS' build" >&2
     exit 2
 fi
 
@@ -136,6 +137,7 @@ fi
 
 echo "Using app: $APP_PATH"
 echo "Using daemon: $DAEMON_BIN"
+echo "Building full jailbreak deb. Remove any Xcode/sideloaded EasyTier app with the same bundle identifier before installing this package."
 
 BUILD_DIR="$DEB_DIR/build"
 STAGE="$BUILD_DIR/${PACKAGE_ID}_${VERSION}_rootless"

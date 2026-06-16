@@ -9,6 +9,7 @@ let columnMinWidth: CGFloat = 300
 #endif
 
 struct ContentView<Manager: TunnelManagerProtocol>: View {
+    @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var manager: Manager
     @StateObject private var selectedSession = SelectedProfileSession()
     
@@ -20,42 +21,43 @@ struct ContentView<Manager: TunnelManagerProtocol>: View {
 #endif
     
     var body: some View {
+        Group {
 #if os(macOS)
-        NavigationSplitView {
-            List(selection: $selectedTab) {
-                NavigationLink(value: TabItem.dashboard) {
-                    Label("main.dashboard", systemImage: "list.bullet.below.rectangle")
+            NavigationSplitView {
+                List(selection: $selectedTab) {
+                    NavigationLink(value: TabItem.dashboard) {
+                        Label("main.dashboard", systemImage: "list.bullet.below.rectangle")
+                    }
+                    NavigationLink(value: TabItem.log) {
+                        Label("logging", systemImage: "rectangle.and.text.magnifyingglass")
+                    }
+                    NavigationLink(value: TabItem.settings) {
+                        Label("settings", systemImage: "gearshape")
+                    }
                 }
-                NavigationLink(value: TabItem.log) {
-                    Label("logging", systemImage: "rectangle.and.text.magnifyingglass")
-                }
-                NavigationLink(value: TabItem.settings) {
-                    Label("settings", systemImage: "gearshape")
-                }
-            }
-        } detail: {
-            switch selectedTab {
-            case .dashboard:
-                DashboardView(manager: manager, selectedSession: selectedSession)
-            case .log:
-                LogView()
-            case .settings:
-                SettingsView(manager: manager)
-            case .none:
-                ZStack {
+            } detail: {
+                switch selectedTab {
+                case .dashboard:
+                    DashboardView(manager: manager, selectedSession: selectedSession)
+                case .log:
+                    LogView()
+                case .settings:
+                    SettingsView(manager: manager)
+                case .none:
+                    ZStack {
 #if os(iOS)
-                    Color(.systemGroupedBackground)
+                        Color(.systemGroupedBackground)
 #endif
-                    Image(systemName: "network")
-                        .resizable()
-                        .frame(width: 128, height: 128)
-                        .foregroundStyle(Color.accentColor.opacity(0.2))
+                        Image(systemName: "network")
+                            .resizable()
+                            .frame(width: 128, height: 128)
+                            .foregroundStyle(Color.accentColor.opacity(0.2))
+                    }
+                    .ignoresSafeArea()
                 }
-                .ignoresSafeArea()
             }
-        }
-        .navigationTitle("EasyTier")
-        .frame(minWidth: 500, minHeight: 300)
+            .navigationTitle("EasyTier")
+            .frame(minWidth: 500, minHeight: 300)
 #else
             TabView {
                 DashboardView(manager: manager, selectedSession: selectedSession)
@@ -76,6 +78,16 @@ struct ContentView<Manager: TunnelManagerProtocol>: View {
                     }
             }
 #endif
+        }
+        .task {
+            await manager.refreshStatus()
+        }
+        .onChange(of: scenePhase) { newPhase in
+            guard newPhase == .active else { return }
+            Task { @MainActor in
+                await manager.refreshStatus()
+            }
+        }
     }
 }
 

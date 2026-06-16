@@ -11,13 +11,12 @@ enum AppPaths {
         jailbreakBaseURL.appendingPathComponent("logs", isDirectory: true)
     }
 
-    static var daemonSocketURL: URL {
-        runtimeDirectoryURL.appendingPathComponent("easytierd.sock")
-    }
-
     static var daemonLogURL: URL {
         logsDirectoryURL.appendingPathComponent("easytierd.log")
     }
+
+    static let daemonIPCAddress = "127.0.0.1"
+    static let daemonIPCPort: UInt16 = 37657
 
     static var rootlessDaemonURL: URL {
         URL(fileURLWithPath: "/var/jb/usr/bin/easytierd")

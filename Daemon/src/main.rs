@@ -3,7 +3,8 @@ mod ipc;
 use std::{
     fs,
     io::{BufRead, BufReader, Write},
-    os::unix::{fs::PermissionsExt, net::UnixListener},
+    net::{TcpListener, TcpStream},
+    os::unix::fs::PermissionsExt,
     path::PathBuf,
 };
 
@@ -11,37 +12,37 @@ use ipc::{handle_request, Response};
 
 const MOBILE_UID: libc::uid_t = 501;
 const MOBILE_GID: libc::gid_t = 501;
+const DEFAULT_IPC_ADDR: &str = "127.0.0.1:37657";
 
-fn main() -> std::io::Result<()> {
+fn main() {
+    if let Err(error) = run() {
+        let paths = RuntimePaths::default();
+        let _ = paths.ensure();
+        log_line(&paths, &format!("fatal: {error}"));
+        eprintln!("fatal: {error}");
+        std::process::exit(1);
+    }
+}
+
+fn run() -> std::io::Result<()> {
     let paths = RuntimePaths::default();
     paths.ensure()?;
     log_line(&paths, "easytierd starting");
 
-    if paths.socket.exists() {
-        fs::remove_file(&paths.socket)?;
-    }
-
-    let listener = UnixListener::bind(&paths.socket)?;
-    chown_mobile(&paths.socket)?;
-    fs::set_permissions(&paths.socket, fs::Permissions::from_mode(0o660))?;
-    log_line(&paths, &format!("listening on {}", paths.socket.display()));
+    let ipc_addr = std::env::var("EASYTIER_IPC_ADDR").unwrap_or_else(|_| DEFAULT_IPC_ADDR.to_owned());
+    log_line(&paths, &format!("binding tcp ipc on {ipc_addr}"));
+    let listener = TcpListener::bind(&ipc_addr).map_err(|error| {
+        log_line(&paths, &format!("bind failed on {ipc_addr}: {error}"));
+        error
+    })?;
+    log_line(&paths, &format!("listening on {ipc_addr}"));
 
     for stream in listener.incoming() {
         match stream {
-            Ok(mut stream) => {
-                let mut reader = BufReader::new(stream.try_clone()?);
-                let mut line = String::new();
-                if let Err(error) = reader.read_line(&mut line) {
-                    log_line(&paths, &format!("read failed: {error}"));
-                    continue;
+            Ok(stream) => {
+                if let Err(error) = handle_stream(stream, &paths) {
+                    log_line(&paths, &format!("request failed: {error}"));
                 }
-                let response = match serde_json::from_str(line.trim_end()) {
-                    Ok(request) => handle_request(request, &paths.log),
-                    Err(error) => Response::error("", "invalidRequest", error.to_string()),
-                };
-                let encoded = serde_json::to_vec(&response)?;
-                stream.write_all(&encoded)?;
-                stream.write_all(b"\n")?;
             }
             Err(error) => {
                 log_line(&paths, &format!("accept failed: {error}"));
@@ -52,12 +53,25 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
+fn handle_stream(mut stream: TcpStream, paths: &RuntimePaths) -> std::io::Result<()> {
+    let mut reader = BufReader::new(stream.try_clone()?);
+    let mut line = String::new();
+    reader.read_line(&mut line)?;
+    let response = match serde_json::from_str(line.trim_end()) {
+        Ok(request) => handle_request(request, &paths.log),
+        Err(error) => Response::error("", "invalidRequest", error.to_string()),
+    };
+    let encoded = serde_json::to_vec(&response)?;
+    stream.write_all(&encoded)?;
+    stream.write_all(b"\n")?;
+    Ok(())
+}
+
 #[derive(Clone, Debug)]
 struct RuntimePaths {
     base: PathBuf,
     runtime: PathBuf,
     logs: PathBuf,
-    socket: PathBuf,
     log: PathBuf,
 }
 
@@ -68,13 +82,11 @@ impl Default for RuntimePaths {
             .unwrap_or_else(|| PathBuf::from("/var/mobile/Library/Application Support/EasyTier"));
         let runtime = base.join("runtime");
         let logs = base.join("logs");
-        let socket = runtime.join("easytierd.sock");
         let log = logs.join("easytierd.log");
         Self {
             base,
             runtime,
             logs,
-            socket,
             log,
         }
     }
@@ -85,9 +97,9 @@ impl RuntimePaths {
         fs::create_dir_all(&self.base)?;
         fs::create_dir_all(&self.runtime)?;
         fs::create_dir_all(&self.logs)?;
-        chown_mobile(&self.base)?;
-        chown_mobile(&self.runtime)?;
-        chown_mobile(&self.logs)?;
+        let _ = chown_mobile(&self.base);
+        let _ = chown_mobile(&self.runtime);
+        let _ = chown_mobile(&self.logs);
         fs::set_permissions(&self.base, fs::Permissions::from_mode(0o700))?;
         fs::set_permissions(&self.runtime, fs::Permissions::from_mode(0o700))?;
         fs::set_permissions(&self.logs, fs::Permissions::from_mode(0o700))?;
