@@ -1,4 +1,5 @@
 mod ipc;
+mod utun;
 
 use std::{
     fs,

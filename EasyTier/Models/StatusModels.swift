@@ -14,6 +14,49 @@ struct NetworkStatus: Codable {
         case symmetricEasyInc = 8
         case symmetricEasyDec = 9
 
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            if let rawValue = try? container.decode(Int.self),
+               let value = NATType(rawValue: rawValue) {
+                self = value
+                return
+            }
+            if let rawValue = try? container.decode(String.self) {
+                switch rawValue
+                    .lowercased()
+                    .replacingOccurrences(of: "_", with: "")
+                    .replacingOccurrences(of: "-", with: "") {
+                case "openinternet":
+                    self = .openInternet
+                case "nopat":
+                    self = .noPAT
+                case "fullcone":
+                    self = .fullCone
+                case "restricted":
+                    self = .restricted
+                case "portrestricted":
+                    self = .portRestricted
+                case "symmetric":
+                    self = .symmetric
+                case "symudpfirewall", "symmetricudpfirewall":
+                    self = .symUDPFirewall
+                case "symmetriceasyinc":
+                    self = .symmetricEasyInc
+                case "symmetriceasydec":
+                    self = .symmetricEasyDec
+                default:
+                    self = .unknown
+                }
+                return
+            }
+            self = .unknown
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.singleValueContainer()
+            try container.encode(rawValue)
+        }
+
         var description: LocalizedStringKey {
             switch self {
             case .unknown:          return "unknown"
@@ -208,6 +251,41 @@ struct NetworkStatus: Codable {
             case minPort = "min_port"
             case maxPort = "max_port"
         }
+
+        init(
+            udpNATType: NATType,
+            tcpNATType: NATType,
+            lastUpdateTime: TimeInterval,
+            publicIPs: [String] = [],
+            minPort: Int? = nil,
+            maxPort: Int? = nil
+        ) {
+            self.udpNATType = udpNATType
+            self.tcpNATType = tcpNATType
+            self.lastUpdateTime = lastUpdateTime
+            self.publicIPs = publicIPs
+            self.minPort = minPort
+            self.maxPort = maxPort
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            udpNATType = try container.decodeIfPresent(NATType.self, forKey: .udpNATType) ?? .unknown
+            tcpNATType = try container.decodeIfPresent(NATType.self, forKey: .tcpNATType) ?? .unknown
+            if let value = try? container.decode(Double.self, forKey: .lastUpdateTime) {
+                lastUpdateTime = value
+            } else if let value = try? container.decode(Int.self, forKey: .lastUpdateTime) {
+                lastUpdateTime = TimeInterval(value)
+            } else if let value = try? container.decode(String.self, forKey: .lastUpdateTime),
+                      let parsed = TimeInterval(value) {
+                lastUpdateTime = parsed
+            } else {
+                lastUpdateTime = 0
+            }
+            publicIPs = try container.decodeIfPresent([String].self, forKey: .publicIPs) ?? []
+            minPort = try container.decodeIfPresent(Int.self, forKey: .minPort)
+            maxPort = try container.decodeIfPresent(Int.self, forKey: .maxPort)
+        }
     }
 
     struct Route: Codable, Hashable, Identifiable {
@@ -334,6 +412,38 @@ struct NetworkStatus: Codable {
         case events, routes, peers, running
         case peerRoutePairs = "peer_route_pairs"
         case errorMsg = "error_msg"
+    }
+
+    init(
+        devName: String,
+        myNodeInfo: MyNodeInfo?,
+        events: [String],
+        routes: [Route],
+        peers: [PeerInfo],
+        peerRoutePairs: [PeerRoutePair],
+        running: Bool,
+        errorMsg: String?
+    ) {
+        self.devName = devName
+        self.myNodeInfo = myNodeInfo
+        self.events = events
+        self.routes = routes
+        self.peers = peers
+        self.peerRoutePairs = peerRoutePairs
+        self.running = running
+        self.errorMsg = errorMsg
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        devName = try container.decodeIfPresent(String.self, forKey: .devName) ?? ""
+        myNodeInfo = try container.decodeIfPresent(MyNodeInfo.self, forKey: .myNodeInfo)
+        events = try container.decodeIfPresent([String].self, forKey: .events) ?? []
+        routes = try container.decodeIfPresent([Route].self, forKey: .routes) ?? []
+        peers = try container.decodeIfPresent([PeerInfo].self, forKey: .peers) ?? []
+        peerRoutePairs = try container.decodeIfPresent([PeerRoutePair].self, forKey: .peerRoutePairs) ?? []
+        running = try container.decodeIfPresent(Bool.self, forKey: .running) ?? false
+        errorMsg = try container.decodeIfPresent(String.self, forKey: .errorMsg)
     }
 
     func sum(of keyPath: KeyPath<PeerConnStats, Int>) -> Int {

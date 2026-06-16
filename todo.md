@@ -28,7 +28,7 @@
 - [x] iCloud 配置项和 ProfileStore 的 iCloud 路径已移除。
 - [x] 主 App 日志页已从 App Group 路径迁回本地 Documents。
 - [ ] legacy Network Extension 日志导出路径仍待移除或迁移。
-- [ ] 越狱 daemon、IPC、utun、route、DNS 尚未完全实现。（daemon/IPC 控制骨架已建立，utun/route/DNS 未实现）
+- [ ] 越狱 daemon、IPC、utun、route、DNS 尚未完全实现。（daemon 已能启动/停止 EasyTier Core，utun/route/DNS 未实现）
 
 当前原则：
 
@@ -243,12 +243,12 @@ Tunnel -> 虚拟网卡 / EasyTier 连接
 基础命令：
 
 - [x] `ping`
-- [x] `start`（当前为 runtime 状态机骨架，尚未启动 Core/utun）
-- [x] `stop`（当前为 runtime 状态机骨架，尚未清理 route/DNS/utun）
+- [x] `start`（已启动 Core，尚未附加 utun）
+- [x] `stop`（已停止 Core，尚未清理 route/DNS/utun）
 - [x] `version`
 - [ ] `restart`
 - [x] `status`
-- [ ] `runningInfo`
+- [x] `runningInfo`
 - [ ] `networkSnapshot`
 - [x] `tailLog`
 - [ ] `exportLog`
@@ -287,10 +287,10 @@ Tunnel -> 虚拟网卡 / EasyTier 连接
 
 - [x] 创建运行目录。
 - [x] 接收 IPC。
-- [ ] 管理 EasyTier Core 生命周期。
+- [x] 管理 EasyTier Core 生命周期（已接入 start/stop，utun fd 尚未附加）
 - [ ] 创建和关闭 utun。
 - [ ] 设置 IP / MTU / route。
-- [x] 记录当前 runtime state（仅 daemon 进程内状态，尚未接 Core/utun）
+- [x] 记录当前 runtime state。
 - [x] 写 daemon 日志。
 - [ ] 提供 cleanup 能力。
 
@@ -347,13 +347,13 @@ plist 草案：
 
 需要复用和验证的 FFI：
 
-- [ ] `init_logger`
-- [ ] `run_network_instance`
-- [ ] `stop_network_instance`
+- [x] `init_logger`
+- [x] `run_network_instance`
+- [x] `stop_network_instance`
 - [ ] `set_tun_fd`
 - [ ] `register_stop_callback`
 - [ ] `register_running_info_callback`
-- [ ] `get_running_info`
+- [x] `get_running_info`
 - [ ] `get_latest_error_msg`
 
 实现步骤：
@@ -561,7 +561,7 @@ postrm
 - [x] App 能 ping daemon。
 - [x] daemon 能启动。
 - [x] daemon 能接收 `start`。
-- [ ] daemon 能启动 Rust EasyTier Core。
+- [x] daemon 能启动 Rust EasyTier Core。
 - [ ] daemon 能创建 utun。
 - [ ] daemon 能把 utun fd 交给 Rust Core。
 - [ ] daemon 能设置 IPv4。
@@ -569,11 +569,11 @@ postrm
 - [ ] daemon 能添加 EasyTier 所需 route。
 - [ ] 当前设备能加入 EasyTier 网络。
 - [ ] 其他节点能 ping 通当前虚拟 IP。
-- [ ] App 能显示 running info。
+- [x] App 能请求 running info。（utun 未接入前信息不完整）
 - [ ] App 能显示 daemon 日志。
 - [x] App 能发送 `stop`。
 - [ ] stop 后 route 被清理。
-- [ ] stop 后 EasyTier Core 停止。
+- [x] stop 后 EasyTier Core 停止。
 - [x] stop 后 GUI 状态正确更新。
 
 明确暂缓：
@@ -604,7 +604,8 @@ postrm
 8. [x] 新建 daemon 源码目录和 IPC 协议定义。
 9. [x] 实现 `ping/status/tailLog` 三个只读命令。
 10. [x] 实现 `start/stop` IPC 和 GUI 控制状态机骨架。
-11. [ ] 再进入 utun 和 Rust Core 生命周期迁移。
+11. [x] 接入 Rust Core 生命周期和 `runningInfo` IPC。
+12. [ ] 再进入 utun 创建、fd 附加和 route/DNS 应用。
 
 ---
 

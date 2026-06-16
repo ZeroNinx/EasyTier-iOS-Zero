@@ -1,7 +1,17 @@
-use std::{fs, path::Path, time::SystemTime};
+use std::{
+    ffi::{CStr, CString},
+    fs,
+    path::Path,
+    sync::Once,
+    time::SystemTime,
+};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+use crate::utun::{create_utun, UtunDevice};
+
+static CORE_LOGGER_INIT: Once = Once::new();
 
 #[derive(Debug, Deserialize)]
 pub struct Request {
@@ -31,6 +41,8 @@ pub struct ResponseData {
     pub lines: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<&'static str>,
+    #[serde(rename = "runningInfo", skip_serializing_if = "Option::is_none")]
+    pub running_info: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -91,6 +103,7 @@ pub struct RuntimeState {
     profile_name: Option<String>,
     started_at: Option<SystemTime>,
     last_error: Option<String>,
+    utun: Option<UtunDevice>,
 }
 
 impl Default for RuntimeState {
@@ -100,6 +113,7 @@ impl Default for RuntimeState {
             profile_name: None,
             started_at: None,
             last_error: None,
+            utun: None,
         }
     }
 }
@@ -114,10 +128,12 @@ pub fn handle_request(request: Request, log_path: &Path, state: &mut RuntimeStat
             Some(ResponseData {
                 lines: None,
                 version: Some(env!("CARGO_PKG_VERSION")),
+                running_info: None,
             }),
         ),
         "start" => start(request, log_path, state),
         "stop" => stop(request, log_path, state),
+        "runningInfo" => running_info(request, state),
         "tailLog" => {
             let limit = request.limit.unwrap_or(200).min(2000);
             let lines = tail_log(log_path, limit);
@@ -127,6 +143,7 @@ pub fn handle_request(request: Request, log_path: &Path, state: &mut RuntimeStat
                 Some(ResponseData {
                     lines: Some(lines),
                     version: None,
+                    running_info: None,
                 }),
             )
         }
@@ -150,6 +167,19 @@ fn start(request: Request, log_path: &Path, state: &mut RuntimeState) -> Respons
         return Response::error(request.id, "invalidProfile", "missing EasyTier options");
     };
 
+    let Some(config) = options.get("config").and_then(Value::as_str) else {
+        state.status = RuntimeStatus::Failed;
+        state.last_error = Some("missing EasyTier config".to_owned());
+        append_log(log_path, "start rejected: missing EasyTier config");
+        return Response::error(request.id, "invalidProfile", "missing EasyTier config");
+    };
+    if config.trim().is_empty() {
+        state.status = RuntimeStatus::Failed;
+        state.last_error = Some("empty EasyTier config".to_owned());
+        append_log(log_path, "start rejected: empty EasyTier config");
+        return Response::error(request.id, "invalidProfile", "empty EasyTier config");
+    }
+
     state.status = RuntimeStatus::Starting;
     let profile_name = request.profile_name.unwrap_or_else(|| "default".to_owned());
     let option_keys = options
@@ -161,13 +191,60 @@ fn start(request: Request, log_path: &Path, state: &mut RuntimeState) -> Respons
         &format!("start requested for profile '{profile_name}' with {option_keys} option fields"),
     );
 
-    // Core/utun are not wired yet. This marks the GUI-control lifecycle as running
-    // so the next phase can replace this point with the real EasyTier Core startup.
+    if let Err(error) = init_core_logger_once(log_path, &options) {
+        append_log(log_path, &format!("core logger init skipped: {error}"));
+    }
+
+    if let Err(error) = run_core(config) {
+        state.status = RuntimeStatus::Failed;
+        state.last_error = Some(error.clone());
+        append_log(log_path, &format!("core start failed: {error}"));
+        return Response::error(request.id, "coreStartFailed", error);
+    }
+
+    let utun = match create_utun() {
+        Ok(utun) => utun,
+        Err(error) => {
+            let error = error.to_string();
+            let _ = easytier_ios::stop_network_instance();
+            state.status = RuntimeStatus::Failed;
+            state.last_error = Some(error.clone());
+            append_log(log_path, &format!("utun create failed: {error}"));
+            return Response::error(request.id, "utunCreateFailed", error);
+        }
+    };
+    let utun_name = utun.name().to_owned();
+    let core_fd = match utun.duplicate_fd() {
+        Ok(fd) => fd,
+        Err(error) => {
+            let error = error.to_string();
+            let _ = easytier_ios::stop_network_instance();
+            state.status = RuntimeStatus::Failed;
+            state.last_error = Some(error.clone());
+            append_log(log_path, &format!("utun fd duplicate failed: {error}"));
+            return Response::error(request.id, "utunAttachFailed", error);
+        }
+    };
+    if let Err(error) = set_core_tun_fd(core_fd) {
+        unsafe {
+            libc::close(core_fd);
+        }
+        let _ = easytier_ios::stop_network_instance();
+        state.status = RuntimeStatus::Failed;
+        state.last_error = Some(error.clone());
+        append_log(log_path, &format!("set core tun fd failed: {error}"));
+        return Response::error(request.id, "utunAttachFailed", error);
+    }
+
     state.status = RuntimeStatus::Running;
     state.profile_name = Some(profile_name);
     state.started_at = Some(SystemTime::now());
     state.last_error = None;
-    append_log(log_path, "runtime state changed to running (core not attached yet)");
+    state.utun = Some(utun);
+    append_log(
+        log_path,
+        &format!("runtime state changed to running (core started, {utun_name} attached)"),
+    );
 
     Response::ok(request.id, Some(state.status.as_str()), None)
 }
@@ -180,6 +257,12 @@ fn stop(request: Request, log_path: &Path, state: &mut RuntimeState) -> Response
     state.status = RuntimeStatus::Stopping;
     append_log(log_path, "stop requested");
 
+    let stop_result = easytier_ios::stop_network_instance();
+    if stop_result != 0 {
+        append_log(log_path, "core stop returned failure");
+    }
+
+    state.utun = None;
     state.status = RuntimeStatus::Stopped;
     state.profile_name = None;
     state.started_at = None;
@@ -187,6 +270,21 @@ fn stop(request: Request, log_path: &Path, state: &mut RuntimeState) -> Response
     append_log(log_path, "runtime state changed to stopped");
 
     Response::ok(request.id, Some(state.status.as_str()), None)
+}
+
+fn running_info(request: Request, state: &mut RuntimeState) -> Response {
+    match get_core_running_info() {
+        Ok(info) => Response::ok(
+            request.id,
+            Some(state.status.as_str()),
+            Some(ResponseData {
+                lines: None,
+                version: None,
+                running_info: Some(info),
+            }),
+        ),
+        Err(error) => Response::error(request.id, "runningInfoUnavailable", error),
+    }
 }
 
 fn tail_log(path: &Path, limit: usize) -> Vec<String> {
@@ -209,4 +307,79 @@ fn append_log(path: &Path, message: &str) {
     if let Ok(mut file) = fs::OpenOptions::new().create(true).append(true).open(path) {
         let _ = writeln!(file, "{message}");
     }
+}
+
+fn init_core_logger_once(log_path: &Path, options: &Value) -> Result<(), String> {
+    let level = options
+        .get("logLevel")
+        .and_then(Value::as_str)
+        .unwrap_or("info");
+    let core_log_path = log_path.with_file_name("easytier-core.log");
+    let path = core_log_path
+        .to_str()
+        .ok_or_else(|| "daemon log path is not valid UTF-8".to_owned())?
+        .to_owned();
+    let mut result = Ok(());
+
+    CORE_LOGGER_INIT.call_once(|| {
+        result = init_core_logger(&path, level);
+    });
+
+    result
+}
+
+fn init_core_logger(path: &str, level: &str) -> Result<(), String> {
+    let path = CString::new(path).map_err(|error| error.to_string())?;
+    let level = CString::new(level).map_err(|error| error.to_string())?;
+    let subsystem = CString::new("com.zeroninex.easytier.daemon").map_err(|error| error.to_string())?;
+    let mut err: *const std::ffi::c_char = std::ptr::null();
+    let ret = easytier_ios::init_logger(path.as_ptr(), level.as_ptr(), subsystem.as_ptr(), &mut err);
+    if ret == 0 {
+        Ok(())
+    } else {
+        Err(take_core_string(err).unwrap_or_else(|| "unknown logger error".to_owned()))
+    }
+}
+
+fn run_core(config: &str) -> Result<(), String> {
+    let config = CString::new(config).map_err(|error| error.to_string())?;
+    let mut err: *const std::ffi::c_char = std::ptr::null();
+    let ret = easytier_ios::run_network_instance(config.as_ptr(), &mut err);
+    if ret == 0 {
+        Ok(())
+    } else {
+        Err(take_core_string(err).unwrap_or_else(|| "unknown core start error".to_owned()))
+    }
+}
+
+fn get_core_running_info() -> Result<String, String> {
+    let mut info: *const std::ffi::c_char = std::ptr::null();
+    let mut err: *const std::ffi::c_char = std::ptr::null();
+    let ret = easytier_ios::get_running_info(&mut info, &mut err);
+    if ret != 0 {
+        return Err(take_core_string(err).unwrap_or_else(|| "running info unavailable".to_owned()));
+    }
+
+    take_core_string(info).ok_or_else(|| "running info is empty".to_owned())
+}
+
+fn set_core_tun_fd(fd: std::ffi::c_int) -> Result<(), String> {
+    let mut err: *const std::ffi::c_char = std::ptr::null();
+    let ret = easytier_ios::set_tun_fd(fd, &mut err);
+    if ret == 0 {
+        Ok(())
+    } else {
+        Err(take_core_string(err).unwrap_or_else(|| "unknown set tun fd error".to_owned()))
+    }
+}
+
+fn take_core_string(ptr: *const std::ffi::c_char) -> Option<String> {
+    if ptr.is_null() {
+        return None;
+    }
+    let value = unsafe { CStr::from_ptr(ptr) }
+        .to_string_lossy()
+        .into_owned();
+    easytier_ios::free_string(ptr);
+    Some(value)
 }

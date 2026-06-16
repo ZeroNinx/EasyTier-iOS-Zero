@@ -34,6 +34,7 @@ struct JailbreakIPCResponse: Codable {
     struct DataPayload: Codable {
         let lines: [String]?
         let version: String?
+        let runningInfo: String?
     }
 
     struct ErrorPayload: Codable {
@@ -49,6 +50,7 @@ enum JailbreakIPCCommand {
     static let status = "status"
     static let tailLog = "tailLog"
     static let version = "version"
+    static let runningInfo = "runningInfo"
 }
 
 enum JailbreakIPCError: LocalizedError {
@@ -150,6 +152,18 @@ final class JailbreakIPCClient {
             throw JailbreakIPCError.daemonError(response.error?.message ?? "Daemon log request failed.")
         }
         return response.data?.lines ?? []
+    }
+
+    func runningInfo() async throws -> NetworkStatus? {
+        let response = try await send(.init(command: JailbreakIPCCommand.runningInfo))
+        guard response.ok else {
+            throw JailbreakIPCError.daemonError(response.error?.message ?? "Daemon running info failed.")
+        }
+        guard let rawInfo = response.data?.runningInfo,
+              let data = rawInfo.data(using: .utf8) else {
+            return nil
+        }
+        return try? JSONDecoder().decode(NetworkStatus.self, from: data)
     }
 
     private func send(_ request: JailbreakIPCRequest) async throws -> JailbreakIPCResponse {

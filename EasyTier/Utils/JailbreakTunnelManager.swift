@@ -70,7 +70,7 @@ final class JailbreakTunnelManager: TunnelManagerProtocol {
     }
 
     func runningInfo() async throws -> NetworkStatus? {
-        nil
+        try await client.runningInfo()
     }
 
     func networkSnapshot() async throws -> TunnelNetworkSettingsSnapshot? {
