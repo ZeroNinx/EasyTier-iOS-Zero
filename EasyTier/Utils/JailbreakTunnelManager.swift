@@ -17,7 +17,7 @@ final class JailbreakTunnelManager: TunnelManagerProtocol {
             lastError = nil
         } catch {
             status = .daemonUnavailable
-            lastError = String(localized: "runtime_status_daemon_unavailable")
+            lastError = error.localizedDescription
         }
     }
 

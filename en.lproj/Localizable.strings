@@ -49,12 +49,9 @@
 "cost" = "Cost";
 "cost_latency_first" = "Cost (Latency First)";
 "daemon_command_unsupported %@" = "Daemon command is not implemented yet: %@";
-"daemon_bundled_file" = "Bundled easytierd";
-"daemon_bundled_missing" = "No easytierd binary was found in the app bundle.";
-"daemon_chmod_failed %@" = "Failed to make easytierd executable: %@";
-"daemon_install_from_app" = "Install easytierd from App";
-"daemon_install_help" = "For development testing, the app can copy a bundled easytierd to /var/mobile/Library/Application Support/EasyTier/bin. The final privileged daemon should still be installed by the jailbreak package.";
+"daemon_detection_help" = "The privileged daemon must be installed by the jailbreak package at /var/jb/usr/bin/easytierd.";
 "daemon_not_installed" = "Not Installed";
+"daemon_refresh_detection" = "Refresh Detection";
 "default_conn_id" = "Default Connection ID";
 "delete" = "Delete";
 "details" = "Details";

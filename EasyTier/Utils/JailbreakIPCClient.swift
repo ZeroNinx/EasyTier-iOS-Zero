@@ -40,9 +40,10 @@ enum JailbreakIPCCommand {
 
 enum JailbreakIPCError: LocalizedError {
     case invalidSocketPath
-    case connectFailed(String)
-    case writeFailed
-    case readFailed
+    case socketFailed(String)
+    case connectFailed(path: String, message: String)
+    case writeFailed(String)
+    case readFailed(String)
     case invalidResponse
     case daemonError(String)
 
@@ -50,12 +51,14 @@ enum JailbreakIPCError: LocalizedError {
         switch self {
         case .invalidSocketPath:
             return "Invalid daemon socket path."
-        case .connectFailed(let message):
-            return message
-        case .writeFailed:
-            return "Failed to write IPC request."
-        case .readFailed:
-            return "Failed to read IPC response."
+        case .socketFailed(let message):
+            return "Failed to create IPC socket: \(message)"
+        case .connectFailed(let path, let message):
+            return "Failed to connect daemon socket at \(path): \(message)"
+        case .writeFailed(let message):
+            return "Failed to write IPC request: \(message)"
+        case .readFailed(let message):
+            return "Failed to read IPC response: \(message)"
         case .invalidResponse:
             return "Invalid IPC response."
         case .daemonError(let message):
@@ -108,7 +111,7 @@ final class JailbreakIPCClient {
 
         let fd = socket(AF_UNIX, SOCK_STREAM, 0)
         guard fd >= 0 else {
-            throw JailbreakIPCError.connectFailed(String(cString: strerror(errno)))
+            throw JailbreakIPCError.socketFailed(String(cString: strerror(errno)))
         }
         defer { close(fd) }
 
@@ -129,19 +132,22 @@ final class JailbreakIPCClient {
             }
         }
         guard connectResult == 0 else {
-            throw JailbreakIPCError.connectFailed(String(cString: strerror(errno)))
+            throw JailbreakIPCError.connectFailed(
+                path: path,
+                message: String(cString: strerror(errno))
+            )
         }
 
         let payload = try JSONEncoder().encode(request) + Data([0x0A])
         try payload.withUnsafeBytes { rawBuffer in
             guard let base = rawBuffer.baseAddress else {
-                throw JailbreakIPCError.writeFailed
+                throw JailbreakIPCError.writeFailed("empty payload")
             }
             var written = 0
             while written < payload.count {
                 let result = Darwin.write(fd, base.advanced(by: written), payload.count - written)
                 guard result > 0 else {
-                    throw JailbreakIPCError.writeFailed
+                    throw JailbreakIPCError.writeFailed(String(cString: strerror(errno)))
                 }
                 written += result
             }
@@ -152,7 +158,7 @@ final class JailbreakIPCClient {
         while true {
             let count = Darwin.read(fd, &buffer, buffer.count)
             guard count >= 0 else {
-                throw JailbreakIPCError.readFailed
+                throw JailbreakIPCError.readFailed(String(cString: strerror(errno)))
             }
             if count == 0 {
                 break

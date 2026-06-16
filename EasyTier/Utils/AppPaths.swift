@@ -19,27 +19,7 @@ enum AppPaths {
         logsDirectoryURL.appendingPathComponent("easytierd.log")
     }
 
-    static var daemonBinDirectoryURL: URL {
-        jailbreakBaseURL.appendingPathComponent("bin", isDirectory: true)
-    }
-
-    static var bundledInstallDaemonURL: URL {
-        daemonBinDirectoryURL.appendingPathComponent("easytierd")
-    }
-
     static var rootlessDaemonURL: URL {
         URL(fileURLWithPath: "/var/jb/usr/bin/easytierd")
-    }
-
-    static var rootfulDaemonURL: URL {
-        URL(fileURLWithPath: "/usr/bin/easytierd")
-    }
-
-    static var daemonCandidateURLs: [URL] {
-        [
-            rootlessDaemonURL,
-            bundledInstallDaemonURL,
-            rootfulDaemonURL,
-        ]
     }
 }

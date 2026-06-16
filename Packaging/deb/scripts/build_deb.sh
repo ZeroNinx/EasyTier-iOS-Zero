@@ -9,18 +9,133 @@ APP_PATH="${1:-${APP_PATH:-}}"
 DAEMON_BIN="${2:-${DAEMON_BIN:-}}"
 VERSION="${VERSION:-0.1.0}"
 PACKAGE_ID="com.zeroninx.easytier"
+APP_ENTITLEMENTS="$DEB_DIR/Entitlements/app.plist"
+DAEMON_ENTITLEMENTS="$DEB_DIR/Entitlements/daemon.plist"
+
+usage() {
+    echo "Usage: $0 [/path/to/EasyTier.app] [/path/to/easytierd]" >&2
+    echo "Or set APP_PATH and DAEMON_BIN." >&2
+}
+
+is_ios_arm64_binary() {
+    binary="$1"
+    [ -f "$binary" ] || return 1
+    file "$binary" | grep -q "arm64" || return 1
+    otool -l "$binary" 2>/dev/null | grep -q "platform 2\\|LC_VERSION_MIN_IPHONEOS"
+}
+
+newer_than() {
+    left="$1"
+    right="$2"
+    [ -z "$right" ] && return 0
+    [ "$(stat -f "%m" "$left")" -gt "$(stat -f "%m" "$right")" ]
+}
+
+find_latest_app() {
+    candidates="$(mktemp)"
+    find "$REPO_ROOT" -path "*/Build/Products/*-iphoneos/EasyTier.app" -type d 2>/dev/null >> "$candidates" || true
+    if [ -n "${HOME:-}" ] && [ -d "$HOME/Library/Developer/Xcode/DerivedData" ]; then
+        find "$HOME/Library/Developer/Xcode/DerivedData" \
+            -path "*/Build/Products/*-iphoneos/EasyTier.app" \
+            -type d 2>/dev/null >> "$candidates" || true
+        find "$HOME/Library/Developer/Xcode/DerivedData" \
+            -path "*/Index.noindex/Build/Products/*-iphoneos/EasyTier.app" \
+            -type d 2>/dev/null >> "$candidates" || true
+    fi
+
+    latest=""
+    while IFS= read -r candidate; do
+        [ -d "$candidate" ] || continue
+        is_ios_arm64_binary "$candidate/EasyTier" || continue
+        if newer_than "$candidate" "$latest"; then
+            latest="$candidate"
+        fi
+    done < "$candidates"
+    rm -f "$candidates"
+
+    [ -n "$latest" ] && printf "%s\n" "$latest"
+}
+
+find_latest_daemon() {
+    candidates="$(mktemp)"
+    find "$REPO_ROOT/Daemon/target" -path "*/release/easytierd" -type f 2>/dev/null >> "$candidates" || true
+
+    latest=""
+    while IFS= read -r candidate; do
+        [ -f "$candidate" ] || continue
+        is_ios_arm64_binary "$candidate" || continue
+        if newer_than "$candidate" "$latest"; then
+            latest="$candidate"
+        fi
+    done < "$candidates"
+    rm -f "$candidates"
+
+    [ -n "$latest" ] && printf "%s\n" "$latest"
+}
+
+if [ -z "$APP_PATH" ]; then
+    APP_PATH="$(find_latest_app || true)"
+fi
+
+if [ -z "$DAEMON_BIN" ]; then
+    DAEMON_BIN="$(find_latest_daemon || true)"
+fi
 
 if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
-    echo "Usage: $0 /path/to/EasyTier.app /path/to/easytierd" >&2
-    echo "Or set APP_PATH and DAEMON_BIN." >&2
+    echo "Missing EasyTier.app iphoneos build product." >&2
+    usage
+    echo "" >&2
+    echo "Build it first, for example:" >&2
+    echo "  xcodebuild -project \"$REPO_ROOT/EasyTier.xcodeproj\" -scheme EasyTier -configuration Debug -sdk iphoneos build" >&2
+    exit 2
+fi
+
+if ! is_ios_arm64_binary "$APP_PATH/EasyTier"; then
+    echo "Invalid EasyTier.app: expected an iOS arm64 executable at:" >&2
+    echo "  $APP_PATH/EasyTier" >&2
+    usage
     exit 2
 fi
 
 if [ -z "$DAEMON_BIN" ] || [ ! -f "$DAEMON_BIN" ]; then
-    echo "Usage: $0 /path/to/EasyTier.app /path/to/easytierd" >&2
-    echo "Or set APP_PATH and DAEMON_BIN." >&2
+    echo "Missing easytierd iOS arm64 build product." >&2
+    usage
+    echo "" >&2
+    echo "Build easytierd for an iOS arm64 target first, then rerun this script." >&2
+    echo "Do not use Daemon/target/release/easytierd; that is a macOS host binary." >&2
     exit 2
 fi
+
+if ! is_ios_arm64_binary "$DAEMON_BIN"; then
+    echo "Invalid easytierd: expected an iOS arm64 executable at:" >&2
+    echo "  $DAEMON_BIN" >&2
+    echo "" >&2
+    echo "Detected:" >&2
+    file "$DAEMON_BIN" >&2 || true
+    echo "" >&2
+    echo "Build easytierd for an iOS arm64 target first." >&2
+    exit 2
+fi
+
+if ! command -v dpkg-deb >/dev/null 2>&1; then
+    echo "Missing required command: dpkg-deb" >&2
+    echo "Install dpkg-deb, then rerun this script." >&2
+    exit 2
+fi
+
+if ! command -v ldid >/dev/null 2>&1; then
+    echo "Missing required command: ldid" >&2
+    echo "Install ldid, then rerun this script. Unsigned iOS daemons are usually killed by AMFI." >&2
+    exit 2
+fi
+
+if [ ! -f "$APP_ENTITLEMENTS" ] || [ ! -f "$DAEMON_ENTITLEMENTS" ]; then
+    echo "Missing packaging entitlements under $DEB_DIR/Entitlements." >&2
+    exit 2
+fi
+
+echo "Using app: $APP_PATH"
+echo "Using daemon: $DAEMON_BIN"
 
 BUILD_DIR="$DEB_DIR/build"
 STAGE="$BUILD_DIR/${PACKAGE_ID}_${VERSION}_rootless"
@@ -42,13 +157,18 @@ cp "$DEB_DIR/postrm" "$CONTROL_DIR/postrm"
 chmod 755 "$CONTROL_DIR/postinst" "$CONTROL_DIR/prerm" "$CONTROL_DIR/postrm"
 
 ditto "$APP_PATH" "$STAGE/var/jb/Applications/EasyTier.app"
+rm -rf "$STAGE/var/jb/Applications/EasyTier.app/_CodeSignature"
+rm -f "$STAGE/var/jb/Applications/EasyTier.app/embedded.mobileprovision"
+ldid -S"$APP_ENTITLEMENTS" "$STAGE/var/jb/Applications/EasyTier.app/EasyTier"
+
 cp "$DAEMON_BIN" "$STAGE/var/jb/usr/bin/easytierd"
 chmod 755 "$STAGE/var/jb/usr/bin/easytierd"
+ldid -S"$DAEMON_ENTITLEMENTS" "$STAGE/var/jb/usr/bin/easytierd"
 
 cp "$DEB_DIR/LaunchDaemons/com.zeroninx.easytierd.plist" \
     "$STAGE/var/jb/Library/LaunchDaemons/com.zeroninx.easytierd.plist"
 chmod 644 "$STAGE/var/jb/Library/LaunchDaemons/com.zeroninx.easytierd.plist"
 
 OUT="$DIST/${PACKAGE_ID}_${VERSION}_iphoneos-arm64.deb"
-dpkg-deb -Zxz -b "$STAGE" "$OUT"
+dpkg-deb --root-owner-group -Zxz -b "$STAGE" "$OUT"
 echo "$OUT"

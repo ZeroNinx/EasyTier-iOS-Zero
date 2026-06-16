@@ -17,11 +17,9 @@ struct SettingsView<Manager: TunnelManagerProtocol>: View {
     @AppStorage("excludeDeviceCommunication") var excludeDeviceCommunication: Bool = true
     @AppStorage("enforceRoutes") var enforceRoutes: Bool = false
     @State private var selectedPane: SettingsPane?
-    @State private var settingsErrorMessage: TextItem?
     @State private var showResetAlert: Bool = false
-    @State private var installedDaemonURL: URL?
-    @State private var bundledDaemonAvailable = false
-    @State private var isInstallingBundledDaemon = false
+    @State private var detectedDaemonURL: URL?
+    @State private var daemonDetectionDetails = ""
     
     init(manager: Manager) {
         _manager = ObservedObject(wrappedValue: manager)
@@ -60,11 +58,8 @@ struct SettingsView<Manager: TunnelManagerProtocol>: View {
             .adaptiveGroupedFormStyle()
 #endif
         }
-        .alert(item: $settingsErrorMessage) { msg in
-            Alert(title: Text("common.error"), message: Text(msg.text))
-        }
         .onAppear {
-            refreshDaemonInstallState()
+            refreshDaemonDetectionState()
         }
         .alert(isPresented: $showResetAlert) {
             Alert(
@@ -105,6 +100,12 @@ struct SettingsView<Manager: TunnelManagerProtocol>: View {
                 LabeledContent("background_service_status") {
                     Text(LocalizedStringKey(manager.status.localizationKey))
                 }
+                if let lastError = manager.lastError, !lastError.isEmpty {
+                    Text(lastError)
+                        .font(.caption2.monospaced())
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
                 LabeledContent("status_refresh_rate") {
                     HStack {
                         TextField(
@@ -128,8 +129,8 @@ struct SettingsView<Manager: TunnelManagerProtocol>: View {
 
             Section {
                 LabeledContent("easytierd_file") {
-                    if let installedDaemonURL {
-                        Text(installedDaemonURL.path)
+                    if let detectedDaemonURL {
+                        Text(detectedDaemonURL.path)
                             .font(.caption.monospaced())
                             .multilineTextAlignment(.trailing)
                             .textSelection(.enabled)
@@ -138,24 +139,19 @@ struct SettingsView<Manager: TunnelManagerProtocol>: View {
                             .foregroundStyle(.red)
                     }
                 }
-                LabeledContent("daemon_bundled_file") {
-                    Text(bundledDaemonAvailable ? "available" : "not_available")
-                        .foregroundStyle(bundledDaemonAvailable ? .primary : .secondary)
+                if !daemonDetectionDetails.isEmpty {
+                    Text(daemonDetectionDetails)
+                        .font(.caption2.monospaced())
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
                 }
-                Button {
-                    installBundledDaemon()
-                } label: {
-                    if isInstallingBundledDaemon {
-                        ProgressView()
-                    } else {
-                        Text("daemon_install_from_app")
-                    }
+                Button("daemon_refresh_detection") {
+                    refreshDaemonDetectionState()
                 }
-                .disabled(!bundledDaemonAvailable || isInstallingBundledDaemon)
             } header: {
                 Text("background_service")
             } footer: {
-                Text("daemon_install_help")
+                Text("daemon_detection_help")
             }
 
             Section {
@@ -338,20 +334,10 @@ struct SettingsView<Manager: TunnelManagerProtocol>: View {
         .navigationTitle("about.license")
     }
 
-    private func refreshDaemonInstallState() {
-        installedDaemonURL = DaemonInstaller.installedBinaryURL()
-        bundledDaemonAvailable = DaemonInstaller.bundledBinaryURL() != nil
-    }
-
-    private func installBundledDaemon() {
-        isInstallingBundledDaemon = true
-        do {
-            installedDaemonURL = try DaemonInstaller.installBundledDaemon()
-            refreshDaemonInstallState()
-        } catch {
-            settingsErrorMessage = .init(error.localizedDescription)
-        }
-        isInstallingBundledDaemon = false
+    private func refreshDaemonDetectionState() {
+        let state = DaemonDetector.detectionState()
+        detectedDaemonURL = state.detectedURL
+        daemonDetectionDetails = state.details
     }
 
 }

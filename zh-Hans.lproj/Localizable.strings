@@ -48,12 +48,9 @@
 "cost" = "代价";
 "cost_latency_first" = "代价（延迟优先）";
 "daemon_command_unsupported %@" = "后台服务命令暂未实现：%@";
-"daemon_bundled_file" = "App 内置 easytierd";
-"daemon_bundled_missing" = "App 包内未找到 easytierd 二进制文件。";
-"daemon_chmod_failed %@" = "设置 easytierd 可执行权限失败：%@";
-"daemon_install_from_app" = "从 App 安装 easytierd";
-"daemon_install_help" = "此入口仅用于开发测试，会把 App 内置的 easytierd 复制到 /var/mobile/Library/Application Support/EasyTier/bin。最终具备特权的 daemon 仍应由越狱安装包安装。";
+"daemon_detection_help" = "特权 daemon 必须由越狱安装包安装到 /var/jb/usr/bin/easytierd。";
 "daemon_not_installed" = "未安装";
+"daemon_refresh_detection" = "刷新检测";
 "default_conn_id" = "默认连接 ID";
 "delete" = "删除";
 "details" = "详情";
