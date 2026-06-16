@@ -8,31 +8,65 @@ final class JailbreakTunnelManager: TunnelManagerProtocol {
     @Published private(set) var connectedDate: Date?
     @Published private(set) var isLoading = false
     @Published private(set) var lastError: String? = String(localized: "runtime_status_daemon_unavailable")
+    @Published private(set) var serviceVersion: String?
 
     private let client = JailbreakIPCClient()
 
     func refreshStatus() async {
         do {
             status = try await client.status()
-            lastError = nil
+            if !status.isConnected {
+                connectedDate = nil
+            }
+            do {
+                serviceVersion = try await client.version()
+                lastError = nil
+            } catch {
+                serviceVersion = nil
+                lastError = error.localizedDescription
+            }
         } catch {
             status = .daemonUnavailable
+            connectedDate = nil
+            serviceVersion = nil
             lastError = error.localizedDescription
         }
     }
 
     func connect(profile: NetworkProfile) async throws {
-        await refreshStatus()
-        if status == .daemonUnavailable {
-            throw TunnelManagerError.daemonUnavailable
+        isLoading = true
+        status = .starting
+        defer { isLoading = false }
+
+        do {
+            let options = try EasyTierOptionsBuilder.generate(from: profile)
+            let profileName = profile.networkName.isEmpty ? "default" : profile.networkName
+            let nextStatus = try await client.start(profileName: profileName, options: options)
+            status = nextStatus
+            connectedDate = nextStatus.isConnected ? Date() : nil
+            lastError = nil
+        } catch {
+            status = .failed(error.localizedDescription)
+            connectedDate = nil
+            lastError = error.localizedDescription
+            throw error
         }
-        lastError = String(format: String(localized: "daemon_command_unsupported %@"), "start")
-        throw TunnelManagerError.commandUnsupported("start")
     }
 
     func disconnect() async {
-        await refreshStatus()
-        connectedDate = nil
+        isLoading = true
+        status = .stopping
+        defer { isLoading = false }
+
+        do {
+            status = try await client.stop()
+            connectedDate = nil
+            lastError = nil
+        } catch {
+            status = .failed(error.localizedDescription)
+            connectedDate = nil
+            lastError = error.localizedDescription
+        }
     }
 
     func runningInfo() async throws -> NetworkStatus? {

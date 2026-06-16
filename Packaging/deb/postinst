@@ -3,6 +3,8 @@ set -e
 
 BASE="/var/mobile/Library/Application Support/EasyTier"
 PLIST="/var/jb/Library/LaunchDaemons/com.zeroninx.easytierd.plist"
+LABEL="com.zeroninx.easytierd"
+JOB="system/$LABEL"
 APP="/var/jb/Applications/EasyTier.app"
 PKG_LOG="$BASE/logs/package.log"
 
@@ -19,6 +21,55 @@ run_logged() {
     "$@" >> "$PKG_LOG" 2>&1 || log "failed: $*"
 }
 
+find_cmd() {
+    for candidate in "$@"; do
+        if [ -x "$candidate" ]; then
+            echo "$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+stop_daemon() {
+    LAUNCHCTL="$(find_cmd /bin/launchctl /var/jb/bin/launchctl || true)"
+    KILLALL="$(find_cmd /usr/bin/killall /var/jb/usr/bin/killall || true)"
+
+    if [ -n "$LAUNCHCTL" ]; then
+        run_logged "$LAUNCHCTL" bootout "$JOB"
+        run_logged "$LAUNCHCTL" bootout system "$PLIST"
+    fi
+
+    if [ -n "$KILLALL" ]; then
+        run_logged "$KILLALL" easytierd
+        sleep 1
+        run_logged "$KILLALL" -9 easytierd
+    fi
+}
+
+start_daemon() {
+    LAUNCHCTL="$(find_cmd /bin/launchctl /var/jb/bin/launchctl || true)"
+    if [ -z "$LAUNCHCTL" ] || [ ! -f "$PLIST" ]; then
+        log "launchctl or plist unavailable, daemon not started"
+        return 0
+    fi
+
+    log "$LAUNCHCTL bootstrap system $PLIST"
+    if "$LAUNCHCTL" bootstrap system "$PLIST" >> "$PKG_LOG" 2>&1; then
+        log "bootstrap succeeded"
+    else
+        log "bootstrap failed, retrying after bootout"
+        run_logged "$LAUNCHCTL" bootout "$JOB"
+        run_logged "$LAUNCHCTL" bootout system "$PLIST"
+        sleep 1
+        run_logged "$LAUNCHCTL" bootstrap system "$PLIST"
+    fi
+
+    run_logged "$LAUNCHCTL" enable "$JOB"
+    run_logged "$LAUNCHCTL" kickstart -k "$JOB"
+    run_logged "$LAUNCHCTL" print "$JOB"
+}
+
 log "starting"
 
 if [ -x /usr/bin/uicache ]; then
@@ -27,19 +78,8 @@ elif [ -x /var/jb/usr/bin/uicache ]; then
     run_logged /var/jb/usr/bin/uicache -p "$APP"
 fi
 
-if [ -x /bin/launchctl ] && [ -f "$PLIST" ]; then
-    run_logged /bin/launchctl bootout system "$PLIST"
-    if [ -x /usr/bin/killall ]; then
-        run_logged /usr/bin/killall easytierd
-    elif [ -x /var/jb/usr/bin/killall ]; then
-        run_logged /var/jb/usr/bin/killall easytierd
-    fi
-    run_logged /bin/launchctl bootstrap system "$PLIST"
-    run_logged /bin/launchctl enable system/com.zeroninx.easytierd
-    run_logged /bin/launchctl kickstart -k system/com.zeroninx.easytierd
-    run_logged /bin/launchctl print system/com.zeroninx.easytierd
-    run_logged /bin/launchctl load -w "$PLIST"
-fi
+stop_daemon
+start_daemon
 
 log "finished"
 

@@ -50,8 +50,11 @@
 "cost_latency_first" = "Cost (Latency First)";
 "daemon_command_unsupported %@" = "Daemon command is not implemented yet: %@";
 "daemon_detection_help" = "The privileged daemon must be installed by the jailbreak package at /var/jb/usr/bin/easytierd.";
+"daemon_file_invalid" = "Invalid File";
 "daemon_not_installed" = "Not Installed";
 "daemon_refresh_detection" = "Refresh Detection";
+"daemon_update_required %@" = "The background service is outdated and does not support %@. Install the latest deb and restart the service.";
+"daemon_version" = "Service Version";
 "default_conn_id" = "Default Connection ID";
 "delete" = "Delete";
 "details" = "Details";

@@ -28,7 +28,7 @@
 - [x] iCloud 配置项和 ProfileStore 的 iCloud 路径已移除。
 - [x] 主 App 日志页已从 App Group 路径迁回本地 Documents。
 - [ ] legacy Network Extension 日志导出路径仍待移除或迁移。
-- [ ] 越狱 daemon、IPC、utun、route、DNS 尚未实现。（daemon/IPC 只读骨架已建立，utun/route/DNS 未实现）
+- [ ] 越狱 daemon、IPC、utun、route、DNS 尚未完全实现。（daemon/IPC 控制骨架已建立，utun/route/DNS 未实现）
 
 当前原则：
 
@@ -55,7 +55,7 @@ EasyTier App
 ```text
 EasyTier App GUI
   -> JailbreakTunnelManager
-  -> Unix domain socket IPC
+  -> 本地 TCP IPC
   -> easytierd LaunchDaemon
   -> 手动创建 utun
   -> 手动设置 IP / MTU / route / DNS
@@ -218,7 +218,7 @@ Tunnel -> 虚拟网卡 / EasyTier 连接
 
 ### 4.1 传输方式
 
-首选 Unix domain socket：
+首选 Unix domain socket，真机测试受限时使用本地 TCP：
 
 ```text
 /var/mobile/Library/Application Support/EasyTier/runtime/easytierd.sock
@@ -230,6 +230,12 @@ Tunnel -> 虚拟网卡 / EasyTier 连接
 127.0.0.1:固定端口
 ```
 
+当前采用：
+
+```text
+127.0.0.1:37657
+```
+
 第一阶段建议使用 newline-delimited JSON，降低实现复杂度。
 
 ### 4.2 命令模型
@@ -237,8 +243,9 @@ Tunnel -> 虚拟网卡 / EasyTier 连接
 基础命令：
 
 - [x] `ping`
-- [ ] `start`
-- [ ] `stop`
+- [x] `start`（当前为 runtime 状态机骨架，尚未启动 Core/utun）
+- [x] `stop`（当前为 runtime 状态机骨架，尚未清理 route/DNS/utun）
+- [x] `version`
 - [ ] `restart`
 - [x] `status`
 - [ ] `runningInfo`
@@ -251,7 +258,7 @@ Tunnel -> 虚拟网卡 / EasyTier 连接
 消息草案：
 
 ```json
-{"id":"uuid","command":"start","profileName":"default","profile":{}}
+{"id":"uuid","command":"start","profileName":"default","options":{}}
 {"id":"uuid","ok":true,"status":"running","data":{}}
 {"id":"uuid","ok":false,"error":{"code":"invalidProfile","message":"..."}}
 ```
@@ -262,13 +269,13 @@ Tunnel -> 虚拟网卡 / EasyTier 连接
 - [ ] 不允许传入任意可执行路径。
 - [ ] 所有 profile 参数必须校验。
 - [ ] secret / token / password 不写入普通日志。
-- [ ] socket 文件权限限制为 App/daemon 可访问范围。
+- [ ] IPC endpoint 权限或访问范围限制为 App/daemon 可访问范围。
 
 验收标准：
 
-- [ ] App 能 `ping` daemon。
-- [ ] daemon 不在线时 App 能快速失败并显示明确错误。
-- [ ] IPC 错误码稳定，不靠解析日志判断结果。
+- [x] App 能 `ping` daemon。
+- [x] daemon 不在线时 App 能快速失败并显示明确错误。
+- [x] IPC 基础错误码稳定，不靠解析日志判断结果。
 
 ---
 
@@ -283,7 +290,7 @@ Tunnel -> 虚拟网卡 / EasyTier 连接
 - [ ] 管理 EasyTier Core 生命周期。
 - [ ] 创建和关闭 utun。
 - [ ] 设置 IP / MTU / route。
-- [ ] 记录当前 runtime state。
+- [x] 记录当前 runtime state（仅 daemon 进程内状态，尚未接 Core/utun）
 - [x] 写 daemon 日志。
 - [ ] 提供 cleanup 能力。
 
@@ -327,10 +334,10 @@ plist 草案：
 
 验收标准：
 
-- [ ] `launchctl load` 后 daemon 可启动。
-- [ ] App 可连接 socket。
+- [x] `launchctl load` 后 daemon 可启动。
+- [x] App 可连接 daemon IPC。
 - [ ] daemon 崩溃后可被重新拉起。
-- [ ] 卸载脚本能停止 daemon 并清理 socket。
+- [ ] 卸载脚本能停止 daemon 并清理运行时残留。
 
 ---
 
@@ -500,7 +507,7 @@ struct TunnelNetworkPlan {
 
 目标：个人自用 deb 包，不考虑正规 IPA 分发。
 
-当前状态：已在 `Packaging/deb/` 建立 rootless deb 打包骨架，真机安装流程仍待验证。
+当前状态：已在 `Packaging/deb/` 建立 rootless deb 打包流程，真机已验证 App 和 daemon IPC 可连通。
 
 内容：
 
@@ -518,9 +525,9 @@ postrm
 - [x] rootless 优先。
 - [ ] rootful 可选。
 - [x] Theos 或等价打包流程。
-- [ ] 安装后桌面出现 EasyTier App。
+- [x] 安装后桌面出现 EasyTier App。
 - [x] 安装后配置目录存在。
-- [ ] 安装后 daemon 可被 launchd 加载。
+- [x] 安装后 daemon 可被 launchd 加载。
 - [x] 卸载默认保留 profiles 和 logs。
 
 脚本职责：
@@ -551,9 +558,9 @@ postrm
 必须完成：
 
 - [ ] App 能打开 GUI。
-- [ ] App 能 ping daemon。
-- [ ] daemon 能启动。
-- [ ] daemon 能接收 `start`。
+- [x] App 能 ping daemon。
+- [x] daemon 能启动。
+- [x] daemon 能接收 `start`。
 - [ ] daemon 能启动 Rust EasyTier Core。
 - [ ] daemon 能创建 utun。
 - [ ] daemon 能把 utun fd 交给 Rust Core。
@@ -564,10 +571,10 @@ postrm
 - [ ] 其他节点能 ping 通当前虚拟 IP。
 - [ ] App 能显示 running info。
 - [ ] App 能显示 daemon 日志。
-- [ ] App 能发送 `stop`。
+- [x] App 能发送 `stop`。
 - [ ] stop 后 route 被清理。
 - [ ] stop 后 EasyTier Core 停止。
-- [ ] stop 后 GUI 状态正确更新。
+- [x] stop 后 GUI 状态正确更新。
 
 明确暂缓：
 
@@ -596,7 +603,8 @@ postrm
 7. [x] 将 Dashboard / StatusView 文案从 VPN 迁到 EasyTier 后台服务。
 8. [x] 新建 daemon 源码目录和 IPC 协议定义。
 9. [x] 实现 `ping/status/tailLog` 三个只读命令。
-10. [ ] 再进入 utun 和 Rust Core 生命周期迁移。
+10. [x] 实现 `start/stop` IPC 和 GUI 控制状态机骨架。
+11. [ ] 再进入 utun 和 Rust Core 生命周期迁移。
 
 ---
 

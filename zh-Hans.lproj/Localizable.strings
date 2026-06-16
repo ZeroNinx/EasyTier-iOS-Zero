@@ -49,8 +49,11 @@
 "cost_latency_first" = "代价（延迟优先）";
 "daemon_command_unsupported %@" = "后台服务命令暂未实现：%@";
 "daemon_detection_help" = "特权 daemon 必须由越狱安装包安装到 /var/jb/usr/bin/easytierd。";
+"daemon_file_invalid" = "文件异常";
 "daemon_not_installed" = "未安装";
 "daemon_refresh_detection" = "刷新检测";
+"daemon_update_required %@" = "后台服务版本过旧，不支持 %@。请安装最新 deb 后重启后台服务。";
+"daemon_version" = "服务版本";
 "default_conn_id" = "默认连接 ID";
 "delete" = "删除";
 "details" = "详情";

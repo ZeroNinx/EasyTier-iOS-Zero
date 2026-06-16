@@ -18,7 +18,8 @@ struct SettingsView<Manager: TunnelManagerProtocol>: View {
     @AppStorage("enforceRoutes") var enforceRoutes: Bool = false
     @State private var selectedPane: SettingsPane?
     @State private var showResetAlert: Bool = false
-    @State private var detectedDaemonURL: URL?
+    @State private var daemonFileStatusKey = "daemon_not_installed"
+    @State private var daemonFileIsValid = false
     @State private var daemonDetectionDetails = ""
     
     init(manager: Manager) {
@@ -129,14 +130,13 @@ struct SettingsView<Manager: TunnelManagerProtocol>: View {
 
             Section {
                 LabeledContent("easytierd_file") {
-                    if let detectedDaemonURL {
-                        Text(detectedDaemonURL.path)
-                            .font(.caption.monospaced())
-                            .multilineTextAlignment(.trailing)
-                            .textSelection(.enabled)
-                    } else {
-                        Text("daemon_not_installed")
-                            .foregroundStyle(.red)
+                    Text(LocalizedStringKey(daemonFileStatusKey))
+                        .foregroundStyle(daemonFileIsValid ? Color.primary : Color.red)
+                }
+                if let serviceVersion = manager.serviceVersion {
+                    LabeledContent("daemon_version") {
+                        Text(serviceVersion)
+                            .monospacedDigit()
                     }
                 }
                 if !daemonDetectionDetails.isEmpty {
@@ -150,8 +150,6 @@ struct SettingsView<Manager: TunnelManagerProtocol>: View {
                 }
             } header: {
                 Text("background_service")
-            } footer: {
-                Text("daemon_detection_help")
             }
 
             Section {
@@ -336,8 +334,19 @@ struct SettingsView<Manager: TunnelManagerProtocol>: View {
 
     private func refreshDaemonDetectionState() {
         let state = DaemonDetector.detectionState()
-        detectedDaemonURL = state.detectedURL
-        daemonDetectionDetails = state.details
+        daemonFileIsValid = state.detectedURL != nil
+        daemonFileStatusKey = daemonFileStatusKey(for: state)
+        daemonDetectionDetails = state.detectedURL == nil ? state.details : ""
+    }
+
+    private func daemonFileStatusKey(for state: DaemonDetector.DetectionState) -> String {
+        if state.detectedURL != nil {
+            return "available"
+        }
+        if state.probes.contains(where: \.exists) {
+            return "daemon_file_invalid"
+        }
+        return "daemon_not_installed"
     }
 
     private func refreshBackgroundServiceState() {

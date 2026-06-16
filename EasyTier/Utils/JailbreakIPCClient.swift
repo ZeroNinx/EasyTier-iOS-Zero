@@ -7,11 +7,20 @@ struct JailbreakIPCRequest: Codable {
     let id: String
     let command: String
     var limit: Int?
+    var profileName: String?
+    var options: EasyTierOptions?
 
-    init(command: String, limit: Int? = nil) {
+    init(
+        command: String,
+        limit: Int? = nil,
+        profileName: String? = nil,
+        options: EasyTierOptions? = nil
+    ) {
         self.id = UUID().uuidString
         self.command = command
         self.limit = limit
+        self.profileName = profileName
+        self.options = options
     }
 }
 
@@ -24,6 +33,7 @@ struct JailbreakIPCResponse: Codable {
 
     struct DataPayload: Codable {
         let lines: [String]?
+        let version: String?
     }
 
     struct ErrorPayload: Codable {
@@ -34,8 +44,11 @@ struct JailbreakIPCResponse: Codable {
 
 enum JailbreakIPCCommand {
     static let ping = "ping"
+    static let start = "start"
+    static let stop = "stop"
     static let status = "status"
     static let tailLog = "tailLog"
+    static let version = "version"
 }
 
 enum JailbreakIPCError: LocalizedError {
@@ -46,6 +59,7 @@ enum JailbreakIPCError: LocalizedError {
     case readFailed(String)
     case invalidResponse
     case daemonError(String)
+    case daemonOutdated(String)
 
     var errorDescription: String? {
         switch self {
@@ -63,6 +77,8 @@ enum JailbreakIPCError: LocalizedError {
             return "Invalid IPC response."
         case .daemonError(let message):
             return message
+        case .daemonOutdated(let command):
+            return String(format: String(localized: "daemon_update_required %@"), command)
         }
     }
 }
@@ -87,6 +103,43 @@ final class JailbreakIPCClient {
         let response = try await send(.init(command: JailbreakIPCCommand.status))
         guard response.ok else {
             throw JailbreakIPCError.daemonError(response.error?.message ?? "Daemon status failed.")
+        }
+        return TunnelRuntimeStatus(ipcStatus: response.status, error: response.error?.message)
+    }
+
+    func version() async throws -> String {
+        let response = try await send(.init(command: JailbreakIPCCommand.version))
+        if response.error?.code == "unknownCommand" {
+            throw JailbreakIPCError.daemonOutdated(JailbreakIPCCommand.version)
+        }
+        guard response.ok, let version = response.data?.version else {
+            throw JailbreakIPCError.daemonError(response.error?.message ?? "Daemon version failed.")
+        }
+        return version
+    }
+
+    func start(profileName: String, options: EasyTierOptions) async throws -> TunnelRuntimeStatus {
+        let response = try await send(.init(
+            command: JailbreakIPCCommand.start,
+            profileName: profileName,
+            options: options
+        ))
+        if response.error?.code == "unknownCommand" {
+            throw JailbreakIPCError.daemonOutdated(JailbreakIPCCommand.start)
+        }
+        guard response.ok else {
+            throw JailbreakIPCError.daemonError(response.error?.message ?? "Daemon start failed.")
+        }
+        return TunnelRuntimeStatus(ipcStatus: response.status, error: response.error?.message)
+    }
+
+    func stop() async throws -> TunnelRuntimeStatus {
+        let response = try await send(.init(command: JailbreakIPCCommand.stop))
+        if response.error?.code == "unknownCommand" {
+            throw JailbreakIPCError.daemonOutdated(JailbreakIPCCommand.stop)
+        }
+        guard response.ok else {
+            throw JailbreakIPCError.daemonError(response.error?.message ?? "Daemon stop failed.")
         }
         return TunnelRuntimeStatus(ipcStatus: response.status, error: response.error?.message)
     }

@@ -29,6 +29,7 @@ final class NetworkExtensionTunnelManagerAdapter: TunnelManagerProtocol {
     @Published private(set) var connectedDate: Date?
     @Published private(set) var isLoading = false
     @Published private(set) var lastError: String?
+    @Published private(set) var serviceVersion: String?
 
     private let legacyManager: NetworkExtensionManager
     private var cancellables = Set<AnyCancellable>()

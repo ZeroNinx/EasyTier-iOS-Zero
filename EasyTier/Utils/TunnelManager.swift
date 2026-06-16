@@ -77,6 +77,7 @@ protocol TunnelManagerProtocol: ObservableObject {
     var connectedDate: Date? { get }
     var isLoading: Bool { get }
     var lastError: String? { get }
+    var serviceVersion: String? { get }
 
     func refreshStatus() async
     @MainActor
@@ -92,6 +93,7 @@ final class MockTunnelManager: TunnelManagerProtocol {
     @Published private(set) var connectedDate: Date?
     @Published private(set) var isLoading = false
     @Published private(set) var lastError: String?
+    @Published private(set) var serviceVersion: String? = "mock"
 
     func refreshStatus() async {
         status = connectedDate == nil ? .stopped : .running

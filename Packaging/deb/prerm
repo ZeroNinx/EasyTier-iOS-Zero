@@ -2,6 +2,8 @@
 set -e
 
 PLIST="/var/jb/Library/LaunchDaemons/com.zeroninx.easytierd.plist"
+LABEL="com.zeroninx.easytierd"
+JOB="system/$LABEL"
 SOCKET="/var/mobile/Library/Application Support/EasyTier/runtime/easytierd.sock"
 PKG_LOG="/var/mobile/Library/Application Support/EasyTier/logs/package.log"
 
@@ -9,9 +11,34 @@ log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') prerm: $*" >> "$PKG_LOG"
 }
 
-if [ -x /bin/launchctl ] && [ -f "$PLIST" ]; then
-    log "bootout system $PLIST"
-    /bin/launchctl bootout system "$PLIST" >> "$PKG_LOG" 2>&1 || log "bootout failed"
+run_logged() {
+    log "$*"
+    "$@" >> "$PKG_LOG" 2>&1 || log "failed: $*"
+}
+
+find_cmd() {
+    for candidate in "$@"; do
+        if [ -x "$candidate" ]; then
+            echo "$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+LAUNCHCTL="$(find_cmd /bin/launchctl /var/jb/bin/launchctl || true)"
+if [ -n "$LAUNCHCTL" ]; then
+    run_logged "$LAUNCHCTL" bootout "$JOB"
+    if [ -f "$PLIST" ]; then
+        run_logged "$LAUNCHCTL" bootout system "$PLIST"
+    fi
+fi
+
+KILLALL="$(find_cmd /usr/bin/killall /var/jb/usr/bin/killall || true)"
+if [ -n "$KILLALL" ]; then
+    run_logged "$KILLALL" easytierd
+    sleep 1
+    run_logged "$KILLALL" -9 easytierd
 fi
 
 rm -f "$SOCKET"

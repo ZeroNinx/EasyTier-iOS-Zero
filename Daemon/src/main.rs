@@ -8,7 +8,7 @@ use std::{
     path::PathBuf,
 };
 
-use ipc::{handle_request, Response};
+use ipc::{handle_request, Response, RuntimeState};
 
 const MOBILE_UID: libc::uid_t = 501;
 const MOBILE_GID: libc::gid_t = 501;
@@ -27,7 +27,10 @@ fn main() {
 fn run() -> std::io::Result<()> {
     let paths = RuntimePaths::default();
     paths.ensure()?;
-    log_line(&paths, "easytierd starting");
+    log_line(
+        &paths,
+        &format!("easytierd {} starting", env!("CARGO_PKG_VERSION")),
+    );
 
     let ipc_addr = std::env::var("EASYTIER_IPC_ADDR").unwrap_or_else(|_| DEFAULT_IPC_ADDR.to_owned());
     log_line(&paths, &format!("binding tcp ipc on {ipc_addr}"));
@@ -37,10 +40,11 @@ fn run() -> std::io::Result<()> {
     })?;
     log_line(&paths, &format!("listening on {ipc_addr}"));
 
+    let mut state = RuntimeState::default();
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                if let Err(error) = handle_stream(stream, &paths) {
+                if let Err(error) = handle_stream(stream, &paths, &mut state) {
                     log_line(&paths, &format!("request failed: {error}"));
                 }
             }
@@ -53,12 +57,16 @@ fn run() -> std::io::Result<()> {
     Ok(())
 }
 
-fn handle_stream(mut stream: TcpStream, paths: &RuntimePaths) -> std::io::Result<()> {
+fn handle_stream(
+    mut stream: TcpStream,
+    paths: &RuntimePaths,
+    state: &mut RuntimeState,
+) -> std::io::Result<()> {
     let mut reader = BufReader::new(stream.try_clone()?);
     let mut line = String::new();
     reader.read_line(&mut line)?;
     let response = match serde_json::from_str(line.trim_end()) {
-        Ok(request) => handle_request(request, &paths.log),
+        Ok(request) => handle_request(request, &paths.log, state),
         Err(error) => Response::error("", "invalidRequest", error.to_string()),
     };
     let encoded = serde_json::to_vec(&response)?;
