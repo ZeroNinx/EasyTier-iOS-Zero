@@ -6,5 +6,5 @@ Maintainer: zeroninx
 Author: zeroninx
 Section: Networking
 Priority: optional
-Description: EasyTier iOS jailbreak client.
- A personal iOS 15+ jailbreak fork with SwiftUI GUI and easytierd daemon.
+Description: EasyTier for iOS 15+ jailbreak.
+ SwiftUI GUI and easytierd daemon packaged for rootless jailbreak environments.

@@ -1,21 +1,51 @@
-# EasyTier iOS 15+ 越狱 Fork
+# EasyTier for iOS 15+ Jailbreak
 
 [简体中文](README_CN.md) | [English](README.md)
 
-这是基于原 EasyTier iOS 分支维护的个人 iOS 15+ 越狱适配 Fork。
+面向 iOS 15+ rootless 越狱环境的 EasyTier 客户端。
 
 ### 概览
 
-本 Fork 用于探索面向越狱设备的 iOS 15 兼容客户端路径。原分支中依赖系统授权、App Store 分发或正式开发者能力的部分，后续可能会被移除，并改为越狱环境下的实现方式。
+本仓库提供面向越狱设备的 iOS 客户端包，包含 SwiftUI 应用和 `easytierd` 运行时守护进程，并以 rootless `.deb` 形式打包。
+
+### 构建
+
+完整打包入口是 `Packaging/deb/scripts/build_full_deb.sh`。
+
+已知要求：Xcode 14 或更新版本。根据构建脚本，还需要 macOS 构建环境、Xcode Command Line Tools、带 `aarch64-apple-ios` target 的 Rust、`protoc`、`dpkg-deb` 和 `ldid`。
+
+准备 Rust iOS target 和 `protoc`：
+
+```sh
+ci_scripts/ci_post_clone.sh
+```
+
+构建 App、daemon 并生成 rootless deb：
+
+```sh
+CONFIGURATION=Release VERSION=0.1.19 Packaging/deb/scripts/build_full_deb.sh
+```
+
+`CONFIGURATION` 默认是 `Debug`，`VERSION` 默认使用 deb 脚本中的包版本。输出文件位于：
+
+```text
+Packaging/deb/dist/com.zeroninx.easytier_${VERSION}_iphoneos-arm64.deb
+```
+
+如果已有 iOS arm64 构建产物，也可以只打包：
+
+```sh
+APP_PATH=/path/to/EasyTier.app DAEMON_BIN=/path/to/easytierd VERSION=0.1.19 Packaging/deb/scripts/build_deb.sh
+```
 
 ### 安装
 
-本 Fork 不提供公开发布渠道。请在本地开发环境或越狱环境中自行构建和安装。
+请在 rootless 越狱环境中安装生成的 `.deb`。安装前，先移除通过 Xcode 或侧载工具安装的同 bundle identifier EasyTier 应用。
 
 ### 状态
 
-本仓库是个人 Fork，不是 EasyTier 官方发布版本。
+这不是 EasyTier 官方发布版本。
 
 ### 许可证
 
-GNU General Public License v3.0 - 详见 [LICENSE](LICENSE)
+GNU General Public License v3.0 or later - 详见 [LICENSE](LICENSE)

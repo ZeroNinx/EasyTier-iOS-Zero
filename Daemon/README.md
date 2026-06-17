@@ -1,6 +1,6 @@
 # easytierd
 
-`easytierd` is the jailbreak runtime daemon for this personal fork.
+`easytierd` is the runtime daemon for EasyTier for iOS 15+ Jailbreak.
 
 Current scope:
 
