@@ -20,6 +20,7 @@ Daemon/target/
 # Logs and local notes
 *.log
 log.txt
+todo.md
 CLAUDE.md
 
 # Debian packaging outputs
