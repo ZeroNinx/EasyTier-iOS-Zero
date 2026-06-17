@@ -83,7 +83,7 @@ struct TimelineRow: View {
 }
 
 struct TimelineEntry: Identifiable {
-    var id: String { self.original }
+    let id: String
     let date: Date?
     let name: String?
     let payload: String
@@ -94,13 +94,18 @@ struct TimelineEntry: Identifiable {
         let isoFormatter = ISO8601DateFormatter()
         isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         
-        return rawLines.compactMap { line in
+        return rawLines.enumerated().compactMap { index, line in
+            let line = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !line.isEmpty else {
+                return nil
+            }
+            let id = "\(index)-\(line)"
             guard let data = line.data(using: .utf8),
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let timeStr = json["time"] as? String,
                   let date = isoFormatter.date(from: timeStr),
                   let eventData = json["event"] else {
-                return TimelineEntry(date: nil, name: nil, payload: line, original: line)
+                return TimelineEntry(id: id, date: nil, name: nil, payload: line, original: line)
             }
             
             let name: String?
@@ -115,9 +120,9 @@ struct TimelineEntry: Identifiable {
             
             if let prettyData = try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .withoutEscapingSlashes, .fragmentsAllowed]),
                let prettyString = String(data: prettyData, encoding: .utf8) {
-                return TimelineEntry(date: date, name: name, payload: prettyString, original: line)
+                return TimelineEntry(id: id, date: date, name: name, payload: prettyString, original: line)
             }
-            return TimelineEntry(date: date, name: nil, payload: line, original: line)
+            return TimelineEntry(id: id, date: date, name: nil, payload: line, original: line)
         }.sorted { $0.date ?? .distantPast > $1.date ?? .distantPast }
     }
 }

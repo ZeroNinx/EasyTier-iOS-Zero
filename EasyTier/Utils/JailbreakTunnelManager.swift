@@ -11,12 +11,6 @@ final class JailbreakTunnelManager: TunnelManagerProtocol {
     @Published private(set) var serviceVersion: String?
 
     private let client = JailbreakIPCClient()
-    private let daemonStoppedKey = "easytier.daemonStoppedByUser"
-
-    private var daemonStoppedByUser: Bool {
-        get { UserDefaults.standard.bool(forKey: daemonStoppedKey) }
-        set { UserDefaults.standard.set(newValue, forKey: daemonStoppedKey) }
-    }
 
     func refreshStatus() async {
         do {
@@ -33,10 +27,10 @@ final class JailbreakTunnelManager: TunnelManagerProtocol {
                 }
             }
         } catch {
-            status = daemonStoppedByUser ? .stopped : .daemonUnavailable
+            status = .daemonUnavailable
             connectedDate = nil
             serviceVersion = nil
-            lastError = daemonStoppedByUser ? nil : error.localizedDescription
+            lastError = error.localizedDescription
         }
     }
 
@@ -46,9 +40,6 @@ final class JailbreakTunnelManager: TunnelManagerProtocol {
         defer { isLoading = false }
 
         do {
-            try await JailbreakDaemonController.start()
-            try await waitForDaemon()
-            daemonStoppedByUser = false
             let options = try EasyTierOptionsBuilder.generate(from: profile)
             let profileName = profile.networkName.isEmpty ? "default" : profile.networkName
             let nextStatus = try await client.start(profileName: profileName, options: options)
@@ -70,16 +61,13 @@ final class JailbreakTunnelManager: TunnelManagerProtocol {
 
         do {
             status = try await client.stop()
+            connectedDate = nil
+            lastError = nil
         } catch {
-            if !daemonStoppedByUser {
-                lastError = error.localizedDescription
-            }
+            status = .failed(error.localizedDescription)
+            connectedDate = nil
+            lastError = error.localizedDescription
         }
-        await JailbreakDaemonController.stop()
-        daemonStoppedByUser = true
-        status = .stopped
-        connectedDate = nil
-        lastError = nil
     }
 
     func runningInfo() async throws -> NetworkStatus? {
@@ -88,19 +76,5 @@ final class JailbreakTunnelManager: TunnelManagerProtocol {
 
     func networkSnapshot() async throws -> TunnelNetworkSettingsSnapshot? {
         nil
-    }
-
-    private func waitForDaemon() async throws {
-        var lastError: Error?
-        for _ in 0..<20 {
-            do {
-                try await client.ping()
-                return
-            } catch {
-                lastError = error
-                try await Task.sleep(nanoseconds: 250_000_000)
-            }
-        }
-        throw lastError ?? TunnelManagerError.daemonUnavailable
     }
 }

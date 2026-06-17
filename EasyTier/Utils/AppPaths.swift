@@ -21,14 +21,4 @@ enum AppPaths {
     static var rootlessDaemonURL: URL {
         URL(fileURLWithPath: "/var/jb/usr/bin/easytierd")
     }
-
-    static let daemonLaunchLabel = "com.zeroninx.easytierd"
-
-    static var daemonLaunchJob: String {
-        "system/\(daemonLaunchLabel)"
-    }
-
-    static var daemonLaunchPlistURL: URL {
-        URL(fileURLWithPath: "/var/jb/Library/LaunchDaemons/\(daemonLaunchLabel).plist")
-    }
 }

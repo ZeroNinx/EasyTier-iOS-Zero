@@ -13,7 +13,7 @@ use easytier::{
 };
 use once_cell::sync::Lazy;
 use tracing_oslog::OsLogger;
-use tracing_subscriber::layer::SubscriberExt as _;
+use tracing_subscriber::{fmt::time::ChronoLocal, layer::SubscriberExt as _};
 
 static INSTANCE: Lazy<Arc<Mutex<Option<NetworkInstance>>>> =
     Lazy::new(|| Arc::new(Mutex::new(None)));
@@ -58,7 +58,8 @@ pub extern "C" fn init_logger(
             .with(
                 tracing_subscriber::fmt::layer()
                     .with_writer(file)
-                    .with_ansi(false),
+                    .with_ansi(false)
+                    .with_timer(ChronoLocal::rfc_3339()),
             )
             .with(OsLogger::new(&subsystem, "rust"));
         tracing::subscriber::set_global_default(collector).map_err(|e| e.to_string())?;

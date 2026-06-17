@@ -22,9 +22,10 @@ struct DashboardView<Manager: TunnelManagerProtocol>: View {
 
     @State var showNewNetworkAlert = false
     @State var newNetworkInput = ""
-    @State var showEditConfigNameAlert = false
+    @State var showEditConfigNameSheet = false
     @State var editConfigNameInput = ""
     @State var editingProfileName: String?
+    @FocusState private var renameFieldFocused: Bool
 
     @State var showImportPicker = false
 #if os(iOS)
@@ -132,9 +133,7 @@ struct DashboardView<Manager: TunnelManagerProtocol>: View {
                         }
                         .contextMenu {
                             Button {
-                                editingProfileName = item.id
-                                editConfigNameInput = item.id
-                                showEditConfigNameAlert = true
+                                beginConfigNameEdit(item.id)
                             } label: {
                                 Label("rename", systemImage: "pencil")
                             }
@@ -157,9 +156,7 @@ struct DashboardView<Manager: TunnelManagerProtocol>: View {
                         }
                         .swipeActions(edge: .leading) {
                             Button {
-                                editingProfileName = item.id
-                                editConfigNameInput = item.id
-                                showEditConfigNameAlert = true
+                                beginConfigNameEdit(item.id)
                             } label: {
                                 Label("rename", systemImage: "pencil")
                             }
@@ -266,12 +263,40 @@ struct DashboardView<Manager: TunnelManagerProtocol>: View {
                 Button("common.cancel") {}
                 Button("network.create", action: createProfile)
             }
-            .alert("edit_config_name", isPresented: $showEditConfigNameAlert) {
-                TextField("config_name", text: $editConfigNameInput)
-                    .adaptiveNoTextInputAutocapitalization()
-                Button("common.cancel") {}
-                Button("save") {
-                    commitConfigNameEdit()
+            .sheet(isPresented: $showEditConfigNameSheet) {
+                editConfigNameSheet
+            }
+        }
+    }
+
+    var editConfigNameSheet: some View {
+        CompatNavigationStack {
+            Form {
+                Section("edit_config_name") {
+                    TextField("config_name", text: $editConfigNameInput)
+                        .adaptiveNoTextInputAutocapitalization()
+                        .focused($renameFieldFocused)
+                }
+            }
+            .adaptiveGroupedFormStyle()
+            .navigationTitle("edit_config_name")
+            .adaptiveNavigationBarTitleInline()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("common.cancel") {
+                        showEditConfigNameSheet = false
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("save") {
+                        commitConfigNameEdit()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+            .onAppear {
+                DispatchQueue.main.async {
+                    renameFieldFocused = true
                 }
             }
         }
@@ -547,23 +572,43 @@ struct DashboardView<Manager: TunnelManagerProtocol>: View {
         }
     }
 
+    private func beginConfigNameEdit(_ name: String) {
+        editingProfileName = name
+        editConfigNameInput = name
+        showEditConfigNameSheet = true
+    }
+
     private func commitConfigNameEdit() {
-        guard let name = selectedSession.session?.name,
-              let editingProfileName else { return }
+        guard let editingProfileName else {
+            showEditConfigNameSheet = false
+            return
+        }
         let trimmed = editConfigNameInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty && trimmed != editingProfileName else { return }
+        guard !trimmed.isEmpty else {
+            errorMessage = .init("Config name cannot be empty.")
+            return
+        }
+        guard trimmed != editingProfileName else {
+            showEditConfigNameSheet = false
+            return
+        }
         guard let sanitizedName = validatedConfigName(trimmed) else { return }
         Task { @MainActor in
             do {
-                let renamingSelected = name == editingProfileName
+                let renamingSelected = selectedSession.session?.name == editingProfileName
                 if renamingSelected {
                     await saveProfile()
                     await closeSelectedSession(save: false)
                 }
-                try ProfileStore.renameProfileFile(from: name, to: sanitizedName)
-                if name == editingProfileName {
+                try ProfileStore.renameProfileFile(from: editingProfileName, to: sanitizedName)
+                if lastSelected == editingProfileName {
+                    lastSelected = sanitizedName
+                }
+                if renamingSelected {
                     await loadProfile(sanitizedName)
                 }
+                showEditConfigNameSheet = false
+                self.editingProfileName = nil
             } catch {
                 dashboardLogger.error("rename failed: \(error)")
                 errorMessage = .init(error.localizedDescription)

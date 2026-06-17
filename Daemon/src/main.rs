@@ -10,6 +10,7 @@ use std::{
     path::PathBuf,
 };
 
+use chrono::Local;
 use ipc::{handle_request, Response, RuntimeState};
 
 const MOBILE_UID: libc::uid_t = 501;
@@ -148,6 +149,21 @@ fn log_line(paths: &RuntimePaths, message: &str) {
         .append(true)
         .open(&paths.log)
     {
-        let _ = writeln!(file, "{message}");
+        let _ = writeln!(file, "{}", format_log_line(message));
     }
+}
+
+fn format_log_line(message: &str) -> String {
+    let level =
+        if message.contains("fatal") || message.contains("failed") || message.contains("error") {
+            "ERROR"
+        } else {
+            "INFO"
+        };
+    format!(
+        "{} {:>5} easytierd: {}",
+        Local::now().to_rfc3339(),
+        level,
+        message
+    )
 }

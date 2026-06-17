@@ -7,10 +7,11 @@ use std::{
     time::{Duration, Instant, SystemTime},
 };
 
+use chrono::Local;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::network::{build_plan, sync_plan, AppliedNetwork, NetworkPlan};
+use crate::network::{build_plan, interface_traffic, sync_plan, AppliedNetwork, NetworkPlan};
 use crate::utun::{create_utun, UtunDevice};
 
 static CORE_LOGGER_INIT: OnceLock<Result<(), String>> = OnceLock::new();
@@ -320,6 +321,7 @@ fn running_info(request: Request, state: &mut RuntimeState, log_path: &Path) -> 
     match get_core_running_info() {
         Ok(info) => {
             apply_network_with_info(log_path, state, Some(&info));
+            let info = append_interface_traffic(log_path, state, &info);
             Response::ok(
                 request.id,
                 Some(state.status.as_str()),
@@ -331,6 +333,37 @@ fn running_info(request: Request, state: &mut RuntimeState, log_path: &Path) -> 
             )
         }
         Err(error) => Response::error(request.id, "runningInfoUnavailable", error),
+    }
+}
+
+fn append_interface_traffic(log_path: &Path, state: &RuntimeState, info: &str) -> String {
+    let Some(interface) = state.utun.as_ref().map(|utun| utun.name()) else {
+        return info.to_owned();
+    };
+    let mut parsed = match serde_json::from_str::<Value>(info) {
+        Ok(Value::Object(object)) => object,
+        _ => return info.to_owned(),
+    };
+    match interface_traffic(interface) {
+        Ok(traffic) => {
+            parsed.insert(
+                "traffic".to_owned(),
+                serde_json::json!({
+                    "rx_bytes": traffic.rx_bytes,
+                    "tx_bytes": traffic.tx_bytes,
+                    "rx_packets": traffic.rx_packets,
+                    "tx_packets": traffic.tx_packets,
+                }),
+            );
+            Value::Object(parsed).to_string()
+        }
+        Err(error) => {
+            append_log(
+                log_path,
+                &format!("network traffic snapshot failed: {error}"),
+            );
+            info.to_owned()
+        }
     }
 }
 
@@ -352,8 +385,27 @@ fn append_log(path: &Path, message: &str) {
     use std::io::Write;
 
     if let Ok(mut file) = fs::OpenOptions::new().create(true).append(true).open(path) {
-        let _ = writeln!(file, "{message}");
+        let _ = writeln!(file, "{}", format_log_line(message));
     }
+}
+
+fn format_log_line(message: &str) -> String {
+    let level = if message.contains("failed")
+        || message.contains("error")
+        || message.contains("rejected")
+    {
+        "ERROR"
+    } else if message.contains("skipped") || message.contains("pending") {
+        "WARN"
+    } else {
+        "INFO"
+    };
+    format!(
+        "{} {:>5} easytierd: {}",
+        Local::now().to_rfc3339(),
+        level,
+        message
+    )
 }
 
 fn init_core_logger_once(log_path: &Path, options: &Value) -> Result<String, String> {

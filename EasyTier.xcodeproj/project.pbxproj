@@ -26,7 +26,6 @@
 		0540001C2F30000000000000 /* Utils/DarwinNotificationObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540002C2F30000000000000 /* Utils/DarwinNotificationObserver.swift */; };
 		054000782F30000000000000 /* Utils/AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540007A2F30000000000000 /* Utils/AppPaths.swift */; };
 		0540007C2F30000000000000 /* Utils/DaemonDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540007D2F30000000000000 /* Utils/DaemonDetector.swift */; };
-		0540007E2F30000000000000 /* Utils/JailbreakDaemonController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540007F2F30000000000000 /* Utils/JailbreakDaemonController.swift */; };
 		054000792F30000000000000 /* Utils/JailbreakIPCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540007B2F30000000000000 /* Utils/JailbreakIPCClient.swift */; };
 		0540001D2F30000000000000 /* Utils/LogTailer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540002D2F30000000000000 /* Utils/LogTailer.swift */; };
 		0540001E2F30000000000000 /* Utils/NetworkExtensionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0540002E2F30000000000000 /* Utils/NetworkExtensionManager.swift */; };
@@ -125,7 +124,6 @@
 		054000412F30000000000000 /* Utils/TextItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils/TextItem.swift; sourceTree = "<group>"; };
 		0540007A2F30000000000000 /* Utils/AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils/AppPaths.swift; sourceTree = "<group>"; };
 		0540007D2F30000000000000 /* Utils/DaemonDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils/DaemonDetector.swift; sourceTree = "<group>"; };
-		0540007F2F30000000000000 /* Utils/JailbreakDaemonController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils/JailbreakDaemonController.swift; sourceTree = "<group>"; };
 		0540007B2F30000000000000 /* Utils/JailbreakIPCClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils/JailbreakIPCClient.swift; sourceTree = "<group>"; };
 		054000742F30000000000000 /* Utils/TunnelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils/TunnelManager.swift; sourceTree = "<group>"; };
 		054000752F30000000000000 /* Utils/EasyTierOptionsBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils/EasyTierOptionsBuilder.swift; sourceTree = "<group>"; };
@@ -251,7 +249,6 @@
 				0540007D2F30000000000000 /* Utils/DaemonDetector.swift */,
 				0540002C2F30000000000000 /* Utils/DarwinNotificationObserver.swift */,
 				054000752F30000000000000 /* Utils/EasyTierOptionsBuilder.swift */,
-				0540007F2F30000000000000 /* Utils/JailbreakDaemonController.swift */,
 				0540007B2F30000000000000 /* Utils/JailbreakIPCClient.swift */,
 				054000772F30000000000000 /* Utils/JailbreakTunnelManager.swift */,
 				0540002D2F30000000000000 /* Utils/LogTailer.swift */,
@@ -548,7 +545,6 @@
 				0540007C2F30000000000000 /* Utils/DaemonDetector.swift in Sources */,
 				0540001C2F30000000000000 /* Utils/DarwinNotificationObserver.swift in Sources */,
 				054000712F30000000000000 /* Utils/EasyTierOptionsBuilder.swift in Sources */,
-				0540007E2F30000000000000 /* Utils/JailbreakDaemonController.swift in Sources */,
 				054000792F30000000000000 /* Utils/JailbreakIPCClient.swift in Sources */,
 				054000732F30000000000000 /* Utils/JailbreakTunnelManager.swift in Sources */,
 				0540001D2F30000000000000 /* Utils/LogTailer.swift in Sources */,
