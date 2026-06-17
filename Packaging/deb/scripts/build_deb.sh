@@ -1,13 +1,15 @@
 #!/bin/sh
 set -e
 
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DEB_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$DEB_DIR/../.." && pwd)"
 
 APP_PATH="${1:-${APP_PATH:-}}"
 DAEMON_BIN="${2:-${DAEMON_BIN:-}}"
-VERSION="${VERSION:-0.1.10}"
+VERSION="${VERSION:-0.1.19}"
 PACKAGE_ID="com.zeroninx.easytier"
 APP_ENTITLEMENTS="$DEB_DIR/Entitlements/app.plist"
 DAEMON_ENTITLEMENTS="$DEB_DIR/Entitlements/daemon.plist"

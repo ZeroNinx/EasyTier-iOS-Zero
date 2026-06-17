@@ -1,4 +1,4 @@
-use std::{collections::HashSet, net::Ipv4Addr, path::Path, process::Command};
+use std::{collections::HashSet, fmt, net::Ipv4Addr, path::Path, process::Command};
 
 use serde_json::Value;
 
@@ -31,6 +31,12 @@ const MAGIC_DNS_CIDR: Ipv4Cidr = Ipv4Cidr {
 pub struct Ipv4Cidr {
     pub address: Ipv4Addr,
     pub prefix: u8,
+}
+
+impl fmt::Display for Ipv4Cidr {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{}/{}", self.address, self.prefix)
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -177,7 +183,7 @@ pub fn build_plan(
         prefix: 0,
     });
     let mut routes = routes.into_iter().collect::<Vec<_>>();
-    routes.sort_by_key(|route| route.prefix);
+    sort_routes(&mut routes);
     remove_covered_routes(&mut routes);
 
     Ok(Some(NetworkPlan {
@@ -381,6 +387,10 @@ fn remove_covered_routes(routes: &mut Vec<Ipv4Cidr>) {
     for index in remove {
         routes.remove(index);
     }
+}
+
+fn sort_routes(routes: &mut [Ipv4Cidr]) {
+    routes.sort_by_key(|route| (route.prefix, u32::from(route.address)));
 }
 
 fn route_covers(bigger: Ipv4Cidr, smaller: Ipv4Cidr) -> bool {

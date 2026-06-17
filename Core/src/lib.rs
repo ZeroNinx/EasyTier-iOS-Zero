@@ -1,14 +1,30 @@
-use std::{ffi::CString, fs::File, sync::{Arc, Mutex}};
+use std::{
+    ffi::CString,
+    fs::File,
+    sync::{Arc, Mutex},
+};
 
 use easytier::{
-    common::{config::{ConfigFileControl, TomlConfigLoader}, global_ctx::GlobalCtxEvent},
+    common::{
+        config::{ConfigFileControl, TomlConfigLoader},
+        global_ctx::GlobalCtxEvent,
+    },
     launcher::NetworkInstance,
 };
 use once_cell::sync::Lazy;
 use tracing_oslog::OsLogger;
 use tracing_subscriber::layer::SubscriberExt as _;
 
-static INSTANCE: Lazy<Arc<Mutex<Option<NetworkInstance>>>> = Lazy::new(|| Arc::new(Mutex::new(None)));
+static INSTANCE: Lazy<Arc<Mutex<Option<NetworkInstance>>>> =
+    Lazy::new(|| Arc::new(Mutex::new(None)));
+
+fn take_running_instance() -> Result<Option<NetworkInstance>, String> {
+    let mut inst = INSTANCE.lock().map_err(|e| e.to_string())?;
+    if let Some(stop) = inst.as_mut().and_then(|inst| inst.get_stop_notifier()) {
+        stop.notify_waiters();
+    }
+    Ok(inst.take())
+}
 
 /// # Safety
 /// Initialize logger
@@ -35,13 +51,19 @@ pub extern "C" fn init_logger(
             .into_owned()
     };
 
-    let impl_func = || {
-        let file = File::create(path).map_err(|e| e.to_string())?;
+    let impl_func = || -> Result<(), String> {
+        let file = File::create(&path).map_err(|e| e.to_string())?;
         let collector = tracing_subscriber::registry()
             .with(tracing_subscriber::EnvFilter::new(level))
-            .with(tracing_subscriber::fmt::layer().with_writer(file).with_ansi(false))
+            .with(
+                tracing_subscriber::fmt::layer()
+                    .with_writer(file)
+                    .with_ansi(false),
+            )
             .with(OsLogger::new(&subsystem, "rust"));
-        tracing::subscriber::set_global_default(collector).map_err(|e| e.to_string())
+        tracing::subscriber::set_global_default(collector).map_err(|e| e.to_string())?;
+        tracing::warn!("core logger initialized: path={path}");
+        Ok(())
     };
 
     match impl_func() {
@@ -49,7 +71,9 @@ pub extern "C" fn init_logger(
         Err(e) => {
             if !err_msg.is_null() {
                 if let Ok(cstr) = CString::new(e) {
-                    unsafe { *err_msg = cstr.into_raw(); }
+                    unsafe {
+                        *err_msg = cstr.into_raw();
+                    }
                 };
             }
             -1
@@ -67,8 +91,11 @@ pub extern "C" fn set_tun_fd(
     let impl_func = || -> Result<(), String> {
         let mut inst = INSTANCE.lock().map_err(|e| e.to_string())?;
         let inst = inst.as_mut().ok_or("no running instance".to_string())?;
-        let sender = inst.get_tun_fd_sender().ok_or("tun fd sender is null".to_string())?;
-        sender.try_send(Some(fd)).map_err(|e| e.to_string())?;
+        let sender = inst
+            .get_tun_fd_sender()
+            .ok_or("tun fd sender is null".to_string())?;
+        let fd = if fd >= 0 { Some(fd) } else { None };
+        sender.try_send(fd).map_err(|e| e.to_string())?;
         Ok(())
     };
 
@@ -77,7 +104,9 @@ pub extern "C" fn set_tun_fd(
         Err(e) => {
             if !err_msg.is_null() {
                 if let Ok(cstr) = CString::new(e) {
-                    unsafe { *err_msg = cstr.into_raw(); }
+                    unsafe {
+                        *err_msg = cstr.into_raw();
+                    }
                 };
             }
             -1
@@ -93,7 +122,9 @@ pub extern "C" fn set_tun_fd(
 /// a pointer that has already been freed, results in undefined behavior.
 /// It is allowed to pass a null pointer; in that case this function is a no-op.
 pub extern "C" fn free_string(s: *const std::ffi::c_char) {
-    if s.is_null() { return; }
+    if s.is_null() {
+        return;
+    }
     unsafe {
         let _ = std::ffi::CString::from_raw(s as *mut std::ffi::c_char);
     }
@@ -116,9 +147,15 @@ pub extern "C" fn run_network_instance(
                 .into_owned()
         };
         let cfg = TomlConfigLoader::new_from_str(&cfg_str).map_err(|e| e.to_string())?;
-        let mut inst = INSTANCE.lock().map_err(|e| e.to_string())?;
+
+        if take_running_instance()?.is_some() {
+            tracing::info!("stopped previous network instance before starting a new one");
+        }
+
         let mut new_inst = NetworkInstance::new(cfg, ConfigFileControl::STATIC_CONFIG);
         new_inst.start().map_err(|e| e.to_string())?;
+
+        let mut inst = INSTANCE.lock().map_err(|e| e.to_string())?;
         *inst = Some(new_inst);
         Ok(())
     };
@@ -128,7 +165,9 @@ pub extern "C" fn run_network_instance(
         Err(e) => {
             if !err_msg.is_null() {
                 if let Ok(cstr) = CString::new(e) {
-                    unsafe { *err_msg = cstr.into_raw(); }
+                    unsafe {
+                        *err_msg = cstr.into_raw();
+                    }
                 };
             }
             -1
@@ -140,14 +179,8 @@ pub extern "C" fn run_network_instance(
 /// Stop the network instance
 #[no_mangle]
 pub extern "C" fn stop_network_instance() -> std::ffi::c_int {
-    match INSTANCE.lock() {
-        Ok(mut inst) => {
-            inst.as_mut()
-                .and_then(|inst| inst.get_stop_notifier())
-                .map(|stop| stop.notify_waiters());
-            *inst = None;
-            0
-        },
+    match take_running_instance() {
+        Ok(_) => 0,
         Err(_) => -1,
     }
 }
@@ -163,7 +196,9 @@ pub extern "C" fn register_stop_callback(
         let callback = callback.ok_or("callback is null".to_string())?;
         let inst = INSTANCE.lock().map_err(|e| e.to_string())?;
         let inst = inst.as_ref().ok_or("no running instance".to_string())?;
-        let stop = inst.get_stop_notifier().ok_or("no stop notifier".to_string())?;
+        let stop = inst
+            .get_stop_notifier()
+            .ok_or("no stop notifier".to_string())?;
         std::thread::spawn(move || {
             let runtime = tokio::runtime::Runtime::new();
             if let Ok(runtime) = runtime {
@@ -181,7 +216,9 @@ pub extern "C" fn register_stop_callback(
         Err(e) => {
             if !err_msg.is_null() {
                 if let Ok(cstr) = CString::new(e) {
-                    unsafe { *err_msg = cstr.into_raw(); }
+                    unsafe {
+                        *err_msg = cstr.into_raw();
+                    }
                 };
             }
             -1
@@ -238,7 +275,9 @@ pub extern "C" fn register_running_info_callback(
         Err(e) => {
             if !err_msg.is_null() {
                 if let Ok(cstr) = CString::new(e) {
-                    unsafe { *err_msg = cstr.into_raw(); }
+                    unsafe {
+                        *err_msg = cstr.into_raw();
+                    }
                 };
             }
             -1
@@ -260,12 +299,12 @@ pub extern "C" fn get_running_info(
         let inst = INSTANCE.lock().map_err(|e| e.to_string())?;
         let inst = inst.as_ref().ok_or("no running instance".to_string())?;
         let runtime = tokio::runtime::Runtime::new().map_err(|e| e.to_string())?;
-        let info = runtime.block_on(inst.get_running_info()).map_err(|e| e.to_string())?;
+        let info = runtime
+            .block_on(inst.get_running_info())
+            .map_err(|e| e.to_string())?;
         let info = serde_json::to_string(&info).map_err(|e| e.to_string())?;
         let cstr = CString::new(info).map_err(|e| e.to_string())?;
-        unsafe {
-            *json = cstr.into_raw()
-        }
+        unsafe { *json = cstr.into_raw() }
         Ok(())
     };
 
@@ -274,7 +313,9 @@ pub extern "C" fn get_running_info(
         Err(e) => {
             if !err_msg.is_null() {
                 if let Ok(cstr) = CString::new(e) {
-                    unsafe { *err_msg = cstr.into_raw(); }
+                    unsafe {
+                        *err_msg = cstr.into_raw();
+                    }
                 };
             }
             -1
@@ -298,9 +339,13 @@ pub extern "C" fn get_latest_error_msg(
         let latest = inst.get_latest_error_msg();
         if let Some(latest) = latest {
             let cstr = CString::new(latest).map_err(|e| e.to_string())?;
-            unsafe { *msg = cstr.into_raw(); }
+            unsafe {
+                *msg = cstr.into_raw();
+            }
         } else {
-            unsafe { *msg = std::ptr::null(); }
+            unsafe {
+                *msg = std::ptr::null();
+            }
         }
         Ok(())
     };
@@ -310,7 +355,9 @@ pub extern "C" fn get_latest_error_msg(
         Err(e) => {
             if !err_msg.is_null() {
                 if let Ok(cstr) = CString::new(e) {
-                    unsafe { *err_msg = cstr.into_raw(); }
+                    unsafe {
+                        *err_msg = cstr.into_raw();
+                    }
                 };
             }
             -1

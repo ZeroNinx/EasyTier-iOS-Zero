@@ -7,18 +7,21 @@ struct JailbreakIPCRequest: Codable {
     let id: String
     let command: String
     var limit: Int?
+    var log: String?
     var profileName: String?
     var options: EasyTierOptions?
 
     init(
         command: String,
         limit: Int? = nil,
+        log: String? = nil,
         profileName: String? = nil,
         options: EasyTierOptions? = nil
     ) {
         self.id = UUID().uuidString
         self.command = command
         self.limit = limit
+        self.log = log
         self.profileName = profileName
         self.options = options
     }
@@ -146,8 +149,8 @@ final class JailbreakIPCClient {
         return TunnelRuntimeStatus(ipcStatus: response.status, error: response.error?.message)
     }
 
-    func tailLog(limit: Int = 200) async throws -> [String] {
-        let response = try await send(.init(command: JailbreakIPCCommand.tailLog, limit: limit))
+    func tailLog(limit: Int = 200, log: String = "daemon") async throws -> [String] {
+        let response = try await send(.init(command: JailbreakIPCCommand.tailLog, limit: limit, log: log))
         guard response.ok else {
             throw JailbreakIPCError.daemonError(response.error?.message ?? "Daemon log request failed.")
         }
