@@ -43,7 +43,7 @@ Packaging/deb/scripts/build_deb.sh
 Release package:
 
 ```sh
-CONFIGURATION=Release VERSION=0.2.0 Packaging/deb/scripts/build_deb.sh
+CONFIGURATION=Release VERSION=0.3.0 Packaging/deb/scripts/build_deb.sh
 ```
 
 Package existing iOS arm64 products:
@@ -53,7 +53,7 @@ Packaging/deb/scripts/build_deb.sh \
   --package-only \
   --app /path/to/EasyTier.app \
   --daemon /path/to/easytierd \
-  --version 0.2.0
+  --version 0.3.0
 ```
 
 The script validates that both `EasyTier.app/EasyTier` and `easytierd` are iOS arm64 binaries before packaging.

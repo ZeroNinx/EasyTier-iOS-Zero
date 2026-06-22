@@ -6,7 +6,6 @@ ACTION="${1:-remove}"
 APP="/var/jb/Applications/EasyTier.app"
 PLIST="/var/jb/Library/LaunchDaemons/com.zeroninex.easytierd.plist"
 LEGACY_PLIST="/var/jb/Library/LaunchDaemons/com.zeroninx.easytierd.plist"
-LEGACY_MOBILE_BASE="/var/mobile/Library/Application Support/EasyTier"
 MOBILE_IDENTIFIERS="com.zeroninex.easytier com.zeroninx.easytier group.com.zeroninex.easytier group.com.zeroninx.easytier"
 
 plist_contains_identifier() {
@@ -24,7 +23,7 @@ plist_contains_identifier() {
     return 1
 }
 
-remove_mobile_containers_for_identifier() {
+remove_mobile_app_bundles_for_identifier() {
     identifier="$1"
 
     for app in /var/mobile/Containers/Bundle/Application/*/*.app; do
@@ -33,20 +32,6 @@ remove_mobile_containers_for_identifier() {
         [ -f "$info" ] || continue
         if plist_contains_identifier "$info" "$identifier"; then
             rm -rf "$(dirname "$app")" || true
-        fi
-    done
-
-    for metadata in /var/mobile/Containers/Data/Application/*/.com.apple.mobile_container_manager.metadata.plist; do
-        [ -f "$metadata" ] || continue
-        if plist_contains_identifier "$metadata" "$identifier"; then
-            rm -rf "$(dirname "$metadata")" || true
-        fi
-    done
-
-    for metadata in /var/mobile/Containers/Shared/AppGroup/*/.com.apple.mobile_container_manager.metadata.plist; do
-        [ -f "$metadata" ] || continue
-        if plist_contains_identifier "$metadata" "$identifier"; then
-            rm -rf "$(dirname "$metadata")" || true
         fi
     done
 }
@@ -65,10 +50,13 @@ case "$ACTION" in
         ;;
 esac
 
-rm -rf "$BASE" "$APP" "$LEGACY_MOBILE_BASE" "$PLIST" "$LEGACY_PLIST" || true
+rm -rf "$APP" "$PLIST" "$LEGACY_PLIST" || true
+if [ "$ACTION" = "purge" ]; then
+    rm -rf "$BASE" || true
+fi
 
 for identifier in $MOBILE_IDENTIFIERS; do
-    remove_mobile_containers_for_identifier "$identifier"
+    remove_mobile_app_bundles_for_identifier "$identifier"
     if [ -x /usr/bin/uicache ]; then
         /usr/bin/uicache -u "$identifier" || true
     elif [ -x /var/jb/usr/bin/uicache ]; then

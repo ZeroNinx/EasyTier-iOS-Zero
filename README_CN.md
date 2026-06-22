@@ -75,7 +75,7 @@ Packaging/deb/scripts/build_deb.sh
 Release 构建：
 
 ```sh
-CONFIGURATION=Release VERSION=0.2.0 Packaging/deb/scripts/build_deb.sh
+CONFIGURATION=Release VERSION=0.3.0 Packaging/deb/scripts/build_deb.sh
 ```
 
 默认值：
@@ -96,7 +96,7 @@ Packaging/deb/scripts/build_deb.sh \
   --package-only \
   --app /path/to/EasyTier.app \
   --daemon /path/to/easytierd \
-  --version 0.2.0
+  --version 0.3.0
 ```
 
 `EasyTier.app/EasyTier` 和 `easytierd` 都必须是 iOS arm64 二进制；脚本会拒绝 macOS 主机二进制。

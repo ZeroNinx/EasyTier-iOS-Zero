@@ -75,7 +75,7 @@ By default it:
 Release build:
 
 ```sh
-CONFIGURATION=Release VERSION=0.2.0 Packaging/deb/scripts/build_deb.sh
+CONFIGURATION=Release VERSION=0.3.0 Packaging/deb/scripts/build_deb.sh
 ```
 
 Defaults:
@@ -96,7 +96,7 @@ Packaging/deb/scripts/build_deb.sh \
   --package-only \
   --app /path/to/EasyTier.app \
   --daemon /path/to/easytierd \
-  --version 0.2.0
+  --version 0.3.0
 ```
 
 Both `EasyTier.app/EasyTier` and `easytierd` must be iOS arm64 binaries. The script rejects macOS host binaries.
