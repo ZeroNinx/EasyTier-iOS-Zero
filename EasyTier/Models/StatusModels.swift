@@ -698,13 +698,14 @@ struct NetworkStatus: Codable {
     var routes: [Route]
     var peers: [PeerInfo]
     var peerRoutePairs: [PeerRoutePair]
+    var traffic: PeerConnStats?
     var running: Bool
     var errorMsg: String?
 
     enum CodingKeys: String, CodingKey {
         case devName = "dev_name"
         case myNodeInfo = "my_node_info"
-        case events, routes, peers, running
+        case events, routes, peers, traffic, running
         case peerRoutePairs = "peer_route_pairs"
         case errorMsg = "error_msg"
     }
@@ -716,6 +717,7 @@ struct NetworkStatus: Codable {
         routes: [Route],
         peers: [PeerInfo],
         peerRoutePairs: [PeerRoutePair],
+        traffic: PeerConnStats? = nil,
         running: Bool,
         errorMsg: String?
     ) {
@@ -725,6 +727,7 @@ struct NetworkStatus: Codable {
         self.routes = routes
         self.peers = peers
         self.peerRoutePairs = peerRoutePairs
+        self.traffic = traffic
         self.running = running
         self.errorMsg = errorMsg
     }
@@ -737,12 +740,16 @@ struct NetworkStatus: Codable {
         routes = container.decodeLossyArray(Route.self, forKey: .routes)
         peers = container.decodeLossyArray(PeerInfo.self, forKey: .peers)
         peerRoutePairs = container.decodeLossyArray(PeerRoutePair.self, forKey: .peerRoutePairs)
+        traffic = try container.decodeIfPresent(PeerConnStats.self, forKey: .traffic)
         running = try container.decodeIfPresent(Bool.self, forKey: .running) ?? false
         errorMsg = try container.decodeIfPresent(String.self, forKey: .errorMsg)
     }
 
     func sum(of keyPath: KeyPath<PeerConnStats, Int>) -> Int {
-        peers
+        if let traffic {
+            return traffic[keyPath: keyPath]
+        }
+        return peers
             .flatMap { $0.conns }
             .compactMap { $0.stats }
             .map { $0[keyPath: keyPath] }

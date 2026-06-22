@@ -1,11 +1,20 @@
-# Debian Package
+# Rootless Debian Package
 
-This directory contains the rootless jailbreak package for EasyTier for iOS 15+ Jailbreak.
+This directory contains the rootless jailbreak package definition for EasyTier for iOS 15+ Jailbreak.
 
-This workflow packages EasyTier as a rootless jailbreak app plus a LaunchDaemon.
-The desktop entry is installed under `/var/jb/Applications`, not as a
-user-installed app, and runtime data is not written to the mobile user's
-Application Support directory.
+This workflow packages EasyTier as a rootless jailbreak app plus a LaunchDaemon. The desktop entry is installed under `/var/jb/Applications`, and runtime data is not written to the mobile user's Application Support directory.
+
+## Contents
+
+```text
+control                         Debian package metadata
+postinst, prerm, postrm          maintainer scripts
+Entitlements/                    ldid entitlements for the app and daemon
+LaunchDaemons/                   launchd plist for easytierd
+scripts/build_deb.sh             single build and packaging entry point
+build/                           generated staging tree, ignored by git
+dist/                            generated .deb output, ignored by git
+```
 
 Installed paths:
 
@@ -15,36 +24,39 @@ Installed paths:
 /var/jb/Library/LaunchDaemons/com.zeroninex.easytierd.plist
 ```
 
-Runtime data is created and preserved under:
+Runtime data is created under:
 
 ```text
 /var/jb/var/lib/easytier/
 ```
 
-Build requirements:
+Legacy mobile-side EasyTier app/data containers are removed by bundle identifier during install and removal.
 
-- macOS with Xcode 14 or newer and Xcode command line tools.
-- Rust with the `aarch64-apple-ios` target.
-- `protoc`.
-- `dpkg-deb`.
-- `ldid`.
+## Build
 
-Prepare the Rust iOS target and `protoc`:
+Full local build and package:
 
 ```sh
-ci_scripts/ci_post_clone.sh
+Packaging/deb/scripts/build_deb.sh
 ```
 
-Full package build:
+Release package:
 
 ```sh
-VERSION=0.1.19 Packaging/deb/scripts/build_full_deb.sh
+CONFIGURATION=Release VERSION=0.2.0 Packaging/deb/scripts/build_deb.sh
 ```
 
-`build_full_deb.sh` builds the `EasyTier` Xcode scheme for `iphoneos`, builds
-`Daemon` with Cargo, then invokes `build_deb.sh` to stage, sign, and package the
-rootless deb. `CONFIGURATION` defaults to `Debug`; `VERSION` defaults to the
-package version used by the deb scripts.
+Package existing iOS arm64 products:
+
+```sh
+Packaging/deb/scripts/build_deb.sh \
+  --package-only \
+  --app /path/to/EasyTier.app \
+  --daemon /path/to/easytierd \
+  --version 0.2.0
+```
+
+The script validates that both `EasyTier.app/EasyTier` and `easytierd` are iOS arm64 binaries before packaging.
 
 Output:
 
@@ -52,10 +64,4 @@ Output:
 Packaging/deb/dist/com.zeroninex.easytier_${VERSION}_iphoneos-arm64.deb
 ```
 
-Advanced packaging from existing build products:
-
-```sh
-APP_PATH=/path/to/EasyTier.app DAEMON_BIN=/path/to/easytierd VERSION=0.1.19 Packaging/deb/scripts/build_deb.sh
-```
-
-Both `EasyTier.app/EasyTier` and `easytierd` must be iOS arm64 binaries.
+See the root README for the verified macOS/Xcode/Rust/tooling versions.

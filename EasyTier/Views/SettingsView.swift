@@ -206,7 +206,7 @@ struct SettingsView<Manager: TunnelManagerProtocol>: View {
                 LabeledContent("version") {
                     Text(appVersion)
                 }
-                Link("about.homepage", destination: URL(string: "https://github.com/EasyTier/EasyTier-iOS")!)
+                Link("about.homepage", destination: URL(string: "https://github.com/ZeroNinx/EasyTier-iOS-Zero")!)
                 Link("about.privacy_policy", destination: URL(string: "https://easytier.cn/guide/privacy.html")!)
                 
 #if os(iOS)
@@ -233,9 +233,12 @@ struct SettingsView<Manager: TunnelManagerProtocol>: View {
     
     var openSourceLicenseView: some View {
         List {
-            Section("EasyTier-iOS") {
+            Section("EasyTier-iOS-Zero") {
                 Text("""
             Copyright (C) 2026  Chenx Dust and Yin Mo
+            Copyright (C) 2026  ZeroNinx and contributors
+
+            Based on EasyTier-iOS by Chenx Dust and Yin Mo.
             
             This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
             

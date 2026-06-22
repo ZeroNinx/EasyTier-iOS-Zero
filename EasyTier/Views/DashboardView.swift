@@ -4,9 +4,72 @@ import os
 import TOMLKit
 import UniformTypeIdentifiers
 import EasyTierShared
+#if os(iOS)
+import UIKit
+#endif
 
 private let dashboardLogger = Logger(subsystem: APP_BUNDLE_ID, category: "main.dashboard")
 private let autoSaveInterval: UInt64 = 1_200_000_000
+
+#if os(iOS)
+private struct AutoFocusTextField: UIViewRepresentable {
+    @Binding var text: String
+    let placeholder: String
+    let focusToken: Int
+    let onSubmit: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    func makeUIView(context: Context) -> UITextField {
+        let textField = UITextField(frame: .zero)
+        textField.placeholder = placeholder
+        textField.autocapitalizationType = .none
+        textField.autocorrectionType = .no
+        textField.returnKeyType = .done
+        textField.delegate = context.coordinator
+        textField.addTarget(
+            context.coordinator,
+            action: #selector(Coordinator.textChanged(_:)),
+            for: .editingChanged
+        )
+        return textField
+    }
+
+    func updateUIView(_ textField: UITextField, context: Context) {
+        context.coordinator.parent = self
+        if textField.text != text {
+            textField.text = text
+        }
+        textField.placeholder = placeholder
+        guard context.coordinator.focusToken != focusToken else { return }
+        context.coordinator.focusToken = focusToken
+        DispatchQueue.main.async {
+            textField.becomeFirstResponder()
+        }
+    }
+
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        var parent: AutoFocusTextField
+        var focusToken = -1
+
+        init(parent: AutoFocusTextField) {
+            self.parent = parent
+        }
+
+        @objc func textChanged(_ sender: UITextField) {
+            parent.text = sender.text ?? ""
+        }
+
+        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+            textField.resignFirstResponder()
+            parent.onSubmit()
+            return true
+        }
+    }
+}
+#endif
 
 struct DashboardView<Manager: TunnelManagerProtocol>: View {
     @Environment(\.scenePhase) var scenePhase
@@ -20,11 +83,13 @@ struct DashboardView<Manager: TunnelManagerProtocol>: View {
 
     @State var showManageSheet = false
 
-    @State var showNewNetworkAlert = false
+    @State var showNewNetworkSheet = false
     @State var newNetworkInput = ""
-    @State var showEditConfigNameAlert = false
+    @State var showEditConfigNameSheet = false
     @State var editConfigNameInput = ""
     @State var editingProfileName: String?
+    @State private var createFocusToken = 0
+    @State private var renameFocusToken = 0
 
     @State var showImportPicker = false
 #if os(iOS)
@@ -96,6 +161,8 @@ struct DashboardView<Manager: TunnelManagerProtocol>: View {
             do {
                 try ProfileStore.save(profile, named: sanitizedName)
                 selectedSession.session = try await ProfileStore.openSession(named: sanitizedName)
+                newNetworkInput = ""
+                showNewNetworkSheet = false
             } catch {
                 dashboardLogger.error("create profile failed: \(error)")
                 errorMessage = .init(error.localizedDescription)
@@ -107,7 +174,7 @@ struct DashboardView<Manager: TunnelManagerProtocol>: View {
         CompatNavigationStack {
             Form {
                 Section("network") {
-                    let profiles = ProfileStore.loadIndexOrEmpty().map{ IdenticalTextItem($0) }
+                    let profiles = ProfileStore.loadIndexOrEmpty().map { IdenticalTextItem($0) }
                     ForEach(profiles) { item in
                         HStack {
                             Text(item.id)
@@ -132,9 +199,7 @@ struct DashboardView<Manager: TunnelManagerProtocol>: View {
                         }
                         .contextMenu {
                             Button {
-                                editingProfileName = item.id
-                                editConfigNameInput = item.id
-                                showEditConfigNameAlert = true
+                                beginConfigNameEdit(item.id)
                             } label: {
                                 Label("rename", systemImage: "pencil")
                             }
@@ -157,9 +222,7 @@ struct DashboardView<Manager: TunnelManagerProtocol>: View {
                         }
                         .swipeActions(edge: .leading) {
                             Button {
-                                editingProfileName = item.id
-                                editConfigNameInput = item.id
-                                showEditConfigNameAlert = true
+                                beginConfigNameEdit(item.id)
                             } label: {
                                 Label("rename", systemImage: "pencil")
                             }
@@ -186,7 +249,7 @@ struct DashboardView<Manager: TunnelManagerProtocol>: View {
                 }
                 Section("device.management") {
                     Button {
-                        showNewNetworkAlert = true
+                        beginProfileCreate()
                     } label: {
                         HStack(spacing: 12) {
                             if #available(iOS 18.0, *) {
@@ -260,19 +323,89 @@ struct DashboardView<Manager: TunnelManagerProtocol>: View {
                     .buttonStyle(.borderedProminent)
                 }
             }
-            .alert("add_new_network", isPresented: $showNewNetworkAlert) {
-                TextField("config_name", text: $newNetworkInput)
-                    .adaptiveNoTextInputAutocapitalization()
-                Button("common.cancel") {}
-                Button("network.create", action: createProfile)
+            .sheet(isPresented: $showNewNetworkSheet) {
+                createProfileSheet
             }
-            .alert("edit_config_name", isPresented: $showEditConfigNameAlert) {
-                TextField("config_name", text: $editConfigNameInput)
-                    .adaptiveNoTextInputAutocapitalization()
-                Button("common.cancel") {}
-                Button("save") {
-                    commitConfigNameEdit()
+            .sheet(isPresented: $showEditConfigNameSheet) {
+                editConfigNameSheet
+            }
+        }
+    }
+
+    var createProfileSheet: some View {
+        CompatNavigationStack {
+            Form {
+                Section("add_new_network") {
+#if os(iOS)
+                    AutoFocusTextField(
+                        text: $newNetworkInput,
+                        placeholder: String(localized: "config_name"),
+                        focusToken: createFocusToken,
+                        onSubmit: createProfile
+                    )
+#else
+                    TextField("config_name", text: $newNetworkInput)
+                        .adaptiveNoTextInputAutocapitalization()
+#endif
                 }
+            }
+            .adaptiveGroupedFormStyle()
+            .navigationTitle("add_new_network")
+            .adaptiveNavigationBarTitleInline()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("common.cancel") {
+                        showNewNetworkSheet = false
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("network.create") {
+                        createProfile()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+            .onAppear {
+                focusCreateField()
+            }
+        }
+    }
+
+    var editConfigNameSheet: some View {
+        CompatNavigationStack {
+            Form {
+                Section("edit_config_name") {
+#if os(iOS)
+                    AutoFocusTextField(
+                        text: $editConfigNameInput,
+                        placeholder: String(localized: "config_name"),
+                        focusToken: renameFocusToken,
+                        onSubmit: commitConfigNameEdit
+                    )
+#else
+                    TextField("config_name", text: $editConfigNameInput)
+                        .adaptiveNoTextInputAutocapitalization()
+#endif
+                }
+            }
+            .adaptiveGroupedFormStyle()
+            .navigationTitle("edit_config_name")
+            .adaptiveNavigationBarTitleInline()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("common.cancel") {
+                        showEditConfigNameSheet = false
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("save") {
+                        commitConfigNameEdit()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+            .onAppear {
+                focusRenameField()
             }
         }
     }
@@ -471,6 +604,23 @@ struct DashboardView<Manager: TunnelManagerProtocol>: View {
         }
     }
 
+    private func focusCreateField() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            createFocusToken += 1
+        }
+    }
+
+    private func focusRenameField() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            renameFocusToken += 1
+        }
+    }
+
+    private func beginProfileCreate() {
+        newNetworkInput = ""
+        showNewNetworkSheet = true
+    }
+
     private func importConfig(from url: URL) {
         Task { @MainActor in
             let scoped = url.startAccessingSecurityScopedResource()
@@ -547,23 +697,43 @@ struct DashboardView<Manager: TunnelManagerProtocol>: View {
         }
     }
 
+    private func beginConfigNameEdit(_ name: String) {
+        editingProfileName = name
+        editConfigNameInput = name
+        showEditConfigNameSheet = true
+    }
+
     private func commitConfigNameEdit() {
-        guard let name = selectedSession.session?.name,
-              let editingProfileName else { return }
+        guard let editingProfileName else {
+            showEditConfigNameSheet = false
+            return
+        }
         let trimmed = editConfigNameInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty && trimmed != editingProfileName else { return }
+        guard !trimmed.isEmpty else {
+            errorMessage = .init("Config name cannot be empty.")
+            return
+        }
+        guard trimmed != editingProfileName else {
+            showEditConfigNameSheet = false
+            return
+        }
         guard let sanitizedName = validatedConfigName(trimmed) else { return }
         Task { @MainActor in
             do {
-                let renamingSelected = name == editingProfileName
+                let renamingSelected = selectedSession.session?.name == editingProfileName
                 if renamingSelected {
                     await saveProfile()
                     await closeSelectedSession(save: false)
                 }
-                try ProfileStore.renameProfileFile(from: name, to: sanitizedName)
-                if name == editingProfileName {
+                try ProfileStore.renameProfileFile(from: editingProfileName, to: sanitizedName)
+                if lastSelected == editingProfileName {
+                    lastSelected = sanitizedName
+                }
+                if renamingSelected {
                     await loadProfile(sanitizedName)
                 }
+                showEditConfigNameSheet = false
+                self.editingProfileName = nil
             } catch {
                 dashboardLogger.error("rename failed: \(error)")
                 errorMessage = .init(error.localizedDescription)

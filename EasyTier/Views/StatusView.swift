@@ -15,6 +15,8 @@ struct StatusView<Manager: TunnelManagerProtocol>: View {
     @State var timer = Timer.publish(every: 1.0, on: .main, in: .common)
     @State var timerSubscription: Cancellable?
     @State var status: NetworkStatus?
+    @State private var lastTrafficSnapshot: TrafficSnapshot?
+    @State private var trafficRate = TrafficRate()
 
     @State var selectedInfoKind: InfoKind = .peerInfo
     @State var selectedPeerRoute: SelectedPeerRoute?
@@ -209,11 +211,11 @@ struct StatusView<Manager: TunnelManagerProtocol>: View {
             HStack(spacing: 42) {
                 TrafficItem(
                     trafficType: .Rx,
-                    value: (status?.sum(of: \.rxBytes))
+                    bytesPerSecond: trafficRate.rxBytesPerSecond
                 )
                 TrafficItem(
                     trafficType: .Tx,
-                    value: (status?.sum(of: \.txBytes))
+                    bytesPerSecond: trafficRate.txBytesPerSecond
                 )
             }
 
@@ -269,6 +271,7 @@ struct StatusView<Manager: TunnelManagerProtocol>: View {
         Task { @MainActor in
             do {
                 if let nextStatus = try await manager.runningInfo() {
+                    updateTrafficRate(with: nextStatus)
                     status = nextStatus
                 }
             } catch {
@@ -288,6 +291,43 @@ struct StatusView<Manager: TunnelManagerProtocol>: View {
         }
     }
 
+    private func updateTrafficRate(with nextStatus: NetworkStatus) {
+        guard nextStatus.running else {
+            lastTrafficSnapshot = nil
+            trafficRate = TrafficRate()
+            return
+        }
+
+        let now = Date()
+        let snapshot = TrafficSnapshot(
+            timestamp: now,
+            rxBytes: nextStatus.sum(of: \.rxBytes),
+            txBytes: nextStatus.sum(of: \.txBytes)
+        )
+        defer { lastTrafficSnapshot = snapshot }
+
+        guard let previous = lastTrafficSnapshot else {
+            trafficRate = TrafficRate()
+            return
+        }
+
+        let interval = snapshot.timestamp.timeIntervalSince(previous.timestamp)
+        guard interval > 0 else {
+            trafficRate = TrafficRate()
+            return
+        }
+
+        trafficRate = TrafficRate(
+            rxBytesPerSecond: bytesPerSecond(current: snapshot.rxBytes, previous: previous.rxBytes, interval: interval),
+            txBytesPerSecond: bytesPerSecond(current: snapshot.txBytes, previous: previous.txBytes, interval: interval)
+        )
+    }
+
+    private func bytesPerSecond(current: Int, previous: Int, interval: TimeInterval) -> Double {
+        guard current >= previous else { return 0 }
+        return Double(current - previous) / interval
+    }
+
     func startTimer() {
         guard timerSubscription == nil else { return }
         let interval = max(0.2, statusRefreshInterval)
@@ -299,6 +339,17 @@ struct StatusView<Manager: TunnelManagerProtocol>: View {
         timerSubscription?.cancel()
         timerSubscription = nil
     }
+}
+
+private struct TrafficSnapshot {
+    let timestamp: Date
+    let rxBytes: Int
+    let txBytes: Int
+}
+
+private struct TrafficRate {
+    var rxBytesPerSecond: Double = 0
+    var txBytesPerSecond: Double = 0
 }
 
 struct PeerRowView<RightView>: View where RightView: View {
@@ -522,11 +573,7 @@ struct SelectedPeerRoute: Identifiable {
 
 struct TrafficItem: View {
     let trafficType: TrafficType
-    let value: Int?
-
-    @State var diff: Double?
-    @State var lastTime: Date?
-    @State var previousValue: Int?
+    let bytesPerSecond: Double
 
     enum TrafficType {
         case Tx
@@ -534,35 +581,35 @@ struct TrafficItem: View {
     }
 
     var unifiedValue: Double {
-        guard let diff else { return 0 }
-	        let v = Double(diff)
-	        switch abs(v) {
-	        case ..<1024:
-	            return v
-	        case ..<1048576:
-	            return v / 1024
-	        case ..<1073741824:
-	            return v / 1048576
-	        case ..<1099511627776:
-	            return v / 1073741824
-	        default:
-	            return v / 1099511627776
-	        }
-	    }
-	    var unit: String {
-	        switch abs(diff ?? 0) {
-	        case ..<1024:
-	            return "B/s"
-	        case ..<1048576:
-	            return "KB/s"
-	        case ..<1073741824:
-	            return "MB/s"
-	        case ..<1099511627776:
-	            return "GB/s"
-	        default:
-	            return "TB/s"
-	        }
-	    }
+        let value = bytesPerSecond
+        switch abs(value) {
+        case ..<1024:
+            return value
+        case ..<1048576:
+            return value / 1024
+        case ..<1073741824:
+            return value / 1048576
+        case ..<1099511627776:
+            return value / 1073741824
+        default:
+            return value / 1099511627776
+        }
+    }
+
+    var unit: String {
+        switch abs(bytesPerSecond) {
+        case ..<1024:
+            return "B/s"
+        case ..<1048576:
+            return "KB/s"
+        case ..<1073741824:
+            return "MB/s"
+        case ..<1099511627776:
+            return "GB/s"
+        default:
+            return "TB/s"
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -596,27 +643,6 @@ struct TrafficItem: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .onChange(of: value) { newValue in
-            guard let newValue else { return }
-            guard let previousValue else {
-                self.lastTime = Date()
-                self.previousValue = newValue
-                diff = 0
-                return
-            }
-            let currentTime = Date()
-            let interval = currentTime.timeIntervalSince(lastTime ?? currentTime)
-            self.lastTime = currentTime
-            diff = interval > 0 ? max(Double(newValue - previousValue) / interval, 0) : 0
-            self.previousValue = newValue
-        }
-        .onAppear {
-            if let value, previousValue == nil {
-                previousValue = value
-                lastTime = Date()
-                diff = 0
-            }
-        }
     }
 }
 

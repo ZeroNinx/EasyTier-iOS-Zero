@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fmt, net::Ipv4Addr, path::Path, process::Command};
+use std::{collections::HashSet, ffi::CStr, fmt, net::Ipv4Addr, path::Path, process::Command};
 
 use serde_json::Value;
 
@@ -54,6 +54,14 @@ pub struct AppliedNetwork {
     routes: Vec<Ipv4Cidr>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct InterfaceTraffic {
+    pub rx_bytes: u64,
+    pub tx_bytes: u64,
+    pub rx_packets: u64,
+    pub tx_packets: u64,
+}
+
 impl AppliedNetwork {
     pub fn matches_plan(&self, plan: &NetworkPlan) -> bool {
         self.address == plan.address && self.mtu == plan.mtu && self.routes == plan.routes
@@ -69,6 +77,40 @@ impl AppliedNetwork {
             &[self.interface, "down".to_owned()],
         );
     }
+}
+
+pub fn interface_traffic(interface: &str) -> Result<InterfaceTraffic, String> {
+    validate_interface(interface)?;
+    let mut addrs: *mut libc::ifaddrs = std::ptr::null_mut();
+    let result = unsafe { libc::getifaddrs(&mut addrs) };
+    if result != 0 {
+        return Err(std::io::Error::last_os_error().to_string());
+    }
+
+    let mut cursor = addrs;
+    let mut traffic = None;
+    while !cursor.is_null() {
+        let item = unsafe { &*cursor };
+        if !item.ifa_name.is_null() && !item.ifa_data.is_null() {
+            let name = unsafe { CStr::from_ptr(item.ifa_name) }.to_string_lossy();
+            if name == interface {
+                let data = unsafe { &*(item.ifa_data as *const libc::if_data) };
+                traffic = Some(InterfaceTraffic {
+                    rx_bytes: data.ifi_ibytes as u64,
+                    tx_bytes: data.ifi_obytes as u64,
+                    rx_packets: data.ifi_ipackets as u64,
+                    tx_packets: data.ifi_opackets as u64,
+                });
+                break;
+            }
+        }
+        cursor = item.ifa_next;
+    }
+
+    unsafe {
+        libc::freeifaddrs(addrs);
+    }
+    traffic.ok_or_else(|| format!("interface counters not found: {interface}"))
 }
 
 pub fn sync_plan(
