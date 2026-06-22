@@ -4,7 +4,7 @@
 
 目标设备：自己的 iOS 15 越狱设备。
 
-目标形态：保留 SwiftUI GUI，用越狱环境下的后台特权服务替代正规 iOS 的 Network Extension 运行路径。
+目标形态：保留越狱桌面 App 入口，用越狱环境下的后台特权服务替代正规 iOS 的 Network Extension 运行路径。
 
 原 EasyTier iOS 正规 App 路线不在本分支继续推进。本分支不追求 App Store、TestFlight、非越狱设备、iCloud、Widget、Shortcuts、Network Extension 正规 entitlement 或 iOS 16+ 官方路线。
 
@@ -121,7 +121,7 @@ EasyTier App GUI
 目标路径：
 
 ```text
-/var/mobile/Library/Application Support/EasyTier/
+/var/jb/var/lib/easytier/
   profiles/
   logs/
   runtime/
@@ -221,7 +221,7 @@ Tunnel -> 虚拟网卡 / EasyTier 连接
 首选 Unix domain socket，真机测试受限时使用本地 TCP：
 
 ```text
-/var/mobile/Library/Application Support/EasyTier/runtime/easytierd.sock
+/var/jb/var/lib/easytier/runtime/easytierd.sock
 ```
 
 备选本地 TCP：
@@ -297,7 +297,7 @@ Tunnel -> 虚拟网卡 / EasyTier 连接
 服务名：
 
 ```text
-com.zeroninx.easytierd
+com.zeroninex.easytierd
 ```
 
 二进制名：
@@ -321,7 +321,7 @@ plist 草案：
 
 ```xml
 <key>Label</key>
-<string>com.zeroninx.easytierd</string>
+<string>com.zeroninex.easytierd</string>
 <key>ProgramArguments</key>
 <array>
   <string>/var/jb/usr/bin/easytierd</string>
@@ -464,7 +464,7 @@ struct TunnelNetworkPlan {
 目标路径：
 
 ```text
-/var/mobile/Library/Application Support/EasyTier/logs/easytierd.log
+/var/jb/var/lib/easytier/logs/easytierd.log
 ```
 
 实现项：
@@ -507,14 +507,14 @@ struct TunnelNetworkPlan {
 
 目标：个人自用 deb 包，不考虑正规 IPA 分发。
 
-当前状态：已在 `Packaging/deb/` 建立 rootless deb 打包流程，真机已验证 App 和 daemon IPC 可连通。
+当前状态：已在 `Packaging/deb/` 建立 rootless deb 打包流程，App 安装在 `/var/jb/Applications`，运行数据保存在 `/var/jb/var/lib/easytier`。
 
 内容：
 
 ```text
 EasyTier.app
 easytierd
-com.zeroninx.easytierd.plist
+com.zeroninex.easytierd.plist
 postinst
 prerm
 postrm

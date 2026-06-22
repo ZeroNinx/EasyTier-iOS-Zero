@@ -1,7 +1,7 @@
 import Foundation
 
 enum AppPaths {
-    static let jailbreakBaseURL = URL(fileURLWithPath: "/var/mobile/Library/Application Support/EasyTier", isDirectory: true)
+    static let jailbreakBaseURL = URL(fileURLWithPath: "/var/jb/var/lib/easytier", isDirectory: true)
 
     static var runtimeDirectoryURL: URL {
         jailbreakBaseURL.appendingPathComponent("runtime", isDirectory: true)
@@ -22,7 +22,7 @@ enum AppPaths {
         URL(fileURLWithPath: "/var/jb/usr/bin/easytierd")
     }
 
-    static let daemonLaunchLabel = "com.zeroninx.easytierd"
+    static let daemonLaunchLabel = "com.zeroninex.easytierd"
 
     static var daemonLaunchJob: String {
         "system/\(daemonLaunchLabel)"

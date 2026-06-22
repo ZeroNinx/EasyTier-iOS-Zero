@@ -1,10 +1,12 @@
-Package: com.zeroninx.easytier
+Package: com.zeroninex.easytier
 Name: EasyTier
 Version: 0.1.19
 Architecture: iphoneos-arm64
-Maintainer: zeroninx
-Author: zeroninx
+Conflicts: com.zeroninx.easytier
+Replaces: com.zeroninx.easytier
+Maintainer: zeroninex
+Author: zeroninex
 Section: Networking
 Priority: optional
 Description: EasyTier for iOS 15+ jailbreak.
- SwiftUI GUI and easytierd daemon packaged for rootless jailbreak environments.
+ SpringBoard app and easytierd daemon packaged for rootless jailbreak environments.

@@ -1,15 +1,20 @@
 #!/bin/sh
 set -e
 
-BASE="/var/mobile/Library/Application Support/EasyTier"
-PLIST="/var/jb/Library/LaunchDaemons/com.zeroninx.easytierd.plist"
-LABEL="com.zeroninx.easytierd"
+BASE="/var/jb/var/lib/easytier"
+PLIST="/var/jb/Library/LaunchDaemons/com.zeroninex.easytierd.plist"
+LABEL="com.zeroninex.easytierd"
 JOB="system/$LABEL"
+LEGACY_LABEL="com.zeroninx.easytierd"
+LEGACY_JOB="system/$LEGACY_LABEL"
+LEGACY_PLIST="/var/jb/Library/LaunchDaemons/$LEGACY_LABEL.plist"
+LEGACY_MOBILE_BASE="/var/mobile/Library/Application Support/EasyTier"
+MOBILE_IDENTIFIERS="com.zeroninex.easytier com.zeroninx.easytier group.com.zeroninex.easytier group.com.zeroninx.easytier"
 APP="/var/jb/Applications/EasyTier.app"
 PKG_LOG="$BASE/logs/package.log"
 
 mkdir -p "$BASE/profiles" "$BASE/logs" "$BASE/runtime" "$BASE/exports"
-chown -R mobile:mobile "$BASE" 2>/dev/null || true
+chown -R root:wheel "$BASE" 2>/dev/null || true
 chmod 700 "$BASE" "$BASE/profiles" "$BASE/logs" "$BASE/runtime" "$BASE/exports"
 
 log() {
@@ -47,6 +52,75 @@ stop_daemon() {
     fi
 }
 
+plist_contains_identifier() {
+    plist="$1"
+    identifier="$2"
+
+    if command -v plutil >/dev/null 2>&1 && plutil -p "$plist" 2>/dev/null | grep -Fq "\"$identifier\""; then
+        return 0
+    fi
+
+    if command -v strings >/dev/null 2>&1 && strings "$plist" 2>/dev/null | grep -qx "$identifier"; then
+        return 0
+    fi
+
+    return 1
+}
+
+remove_mobile_containers_for_identifier() {
+    identifier="$1"
+
+    for app in /var/mobile/Containers/Bundle/Application/*/*.app; do
+        [ -d "$app" ] || continue
+        info="$app/Info.plist"
+        [ -f "$info" ] || continue
+        if plist_contains_identifier "$info" "$identifier"; then
+            run_logged rm -rf "$(dirname "$app")"
+        fi
+    done
+
+    for metadata in /var/mobile/Containers/Data/Application/*/.com.apple.mobile_container_manager.metadata.plist; do
+        [ -f "$metadata" ] || continue
+        if plist_contains_identifier "$metadata" "$identifier"; then
+            run_logged rm -rf "$(dirname "$metadata")"
+        fi
+    done
+
+    for metadata in /var/mobile/Containers/Shared/AppGroup/*/.com.apple.mobile_container_manager.metadata.plist; do
+        [ -f "$metadata" ] || continue
+        if plist_contains_identifier "$metadata" "$identifier"; then
+            run_logged rm -rf "$(dirname "$metadata")"
+        fi
+    done
+}
+
+cleanup_legacy_install() {
+    LAUNCHCTL="$(find_cmd /bin/launchctl /var/jb/bin/launchctl || true)"
+    if [ -n "$LAUNCHCTL" ]; then
+        run_logged "$LAUNCHCTL" bootout "$LEGACY_JOB"
+        if [ -f "$LEGACY_PLIST" ]; then
+            run_logged "$LAUNCHCTL" bootout system "$LEGACY_PLIST"
+        fi
+    fi
+
+    if [ -f "$LEGACY_PLIST" ]; then
+        run_logged rm -f "$LEGACY_PLIST"
+    fi
+
+    if [ -d "$LEGACY_MOBILE_BASE" ]; then
+        run_logged rm -rf "$LEGACY_MOBILE_BASE"
+    fi
+
+    for identifier in $MOBILE_IDENTIFIERS; do
+        remove_mobile_containers_for_identifier "$identifier"
+        if [ -x /usr/bin/uicache ]; then
+            run_logged /usr/bin/uicache -u "$identifier"
+        elif [ -x /var/jb/usr/bin/uicache ]; then
+            run_logged /var/jb/usr/bin/uicache -u "$identifier"
+        fi
+    done
+}
+
 start_daemon() {
     LAUNCHCTL="$(find_cmd /bin/launchctl /var/jb/bin/launchctl || true)"
     if [ -z "$LAUNCHCTL" ] || [ ! -f "$PLIST" ]; then
@@ -71,6 +145,8 @@ start_daemon() {
 }
 
 log "starting"
+
+cleanup_legacy_install
 
 if [ -x /usr/bin/uicache ]; then
     run_logged /usr/bin/uicache -p "$APP"

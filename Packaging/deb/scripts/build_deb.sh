@@ -10,7 +10,7 @@ REPO_ROOT="$(cd "$DEB_DIR/../.." && pwd)"
 APP_PATH="${1:-${APP_PATH:-}}"
 DAEMON_BIN="${2:-${DAEMON_BIN:-}}"
 VERSION="${VERSION:-0.1.19}"
-PACKAGE_ID="com.zeroninx.easytier"
+PACKAGE_ID="com.zeroninex.easytier"
 APP_ENTITLEMENTS="$DEB_DIR/Entitlements/app.plist"
 DAEMON_ENTITLEMENTS="$DEB_DIR/Entitlements/daemon.plist"
 
@@ -139,7 +139,7 @@ fi
 
 echo "Using app: $APP_PATH"
 echo "Using daemon: $DAEMON_BIN"
-echo "Building full jailbreak deb. Remove any Xcode/sideloaded EasyTier app with the same bundle identifier before installing this package."
+echo "Building rootless jailbreak deb. App bundle will be installed under /var/jb/Applications."
 
 BUILD_DIR="$DEB_DIR/build"
 STAGE="$BUILD_DIR/${PACKAGE_ID}_${VERSION}_rootless"
@@ -169,9 +169,9 @@ cp "$DAEMON_BIN" "$STAGE/var/jb/usr/bin/easytierd"
 chmod 755 "$STAGE/var/jb/usr/bin/easytierd"
 ldid -S"$DAEMON_ENTITLEMENTS" "$STAGE/var/jb/usr/bin/easytierd"
 
-cp "$DEB_DIR/LaunchDaemons/com.zeroninx.easytierd.plist" \
-    "$STAGE/var/jb/Library/LaunchDaemons/com.zeroninx.easytierd.plist"
-chmod 644 "$STAGE/var/jb/Library/LaunchDaemons/com.zeroninx.easytierd.plist"
+cp "$DEB_DIR/LaunchDaemons/com.zeroninex.easytierd.plist" \
+    "$STAGE/var/jb/Library/LaunchDaemons/com.zeroninex.easytierd.plist"
+chmod 644 "$STAGE/var/jb/Library/LaunchDaemons/com.zeroninex.easytierd.plist"
 
 OUT="$DIST/${PACKAGE_ID}_${VERSION}_iphoneos-arm64.deb"
 dpkg-deb --root-owner-group -Zxz -b "$STAGE" "$OUT"

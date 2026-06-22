@@ -2,23 +2,23 @@
 
 This directory contains the rootless jailbreak package for EasyTier for iOS 15+ Jailbreak.
 
-This is a full deb workflow: install EasyTier through the package, not through Xcode
-or sideloading at the same time. If an Xcode/sideloaded build with the same
-`CFBundleIdentifier` is still installed, Dopamine/SpringBoard may report a duplicate
-app.
+This workflow packages EasyTier as a rootless jailbreak app plus a LaunchDaemon.
+The desktop entry is installed under `/var/jb/Applications`, not as a
+user-installed app, and runtime data is not written to the mobile user's
+Application Support directory.
 
 Installed paths:
 
 ```text
-/var/jb/Applications/EasyTier.app
 /var/jb/usr/bin/easytierd
-/var/jb/Library/LaunchDaemons/com.zeroninx.easytierd.plist
+/var/jb/Applications/EasyTier.app
+/var/jb/Library/LaunchDaemons/com.zeroninex.easytierd.plist
 ```
 
-User data is created and preserved under:
+Runtime data is created and preserved under:
 
 ```text
-/var/mobile/Library/Application Support/EasyTier/
+/var/jb/var/lib/easytier/
 ```
 
 Build requirements:
@@ -35,10 +35,10 @@ Prepare the Rust iOS target and `protoc`:
 ci_scripts/ci_post_clone.sh
 ```
 
-Full build:
+Full package build:
 
 ```sh
-CONFIGURATION=Release VERSION=0.1.19 Packaging/deb/scripts/build_full_deb.sh
+VERSION=0.1.19 Packaging/deb/scripts/build_full_deb.sh
 ```
 
 `build_full_deb.sh` builds the `EasyTier` Xcode scheme for `iphoneos`, builds
@@ -49,7 +49,7 @@ package version used by the deb scripts.
 Output:
 
 ```text
-Packaging/deb/dist/com.zeroninx.easytier_${VERSION}_iphoneos-arm64.deb
+Packaging/deb/dist/com.zeroninex.easytier_${VERSION}_iphoneos-arm64.deb
 ```
 
 Advanced packaging from existing build products:
@@ -59,7 +59,3 @@ APP_PATH=/path/to/EasyTier.app DAEMON_BIN=/path/to/easytierd VERSION=0.1.19 Pack
 ```
 
 Both `EasyTier.app/EasyTier` and `easytierd` must be iOS arm64 binaries.
-
-Before installing the full deb on device, remove any existing EasyTier app installed
-by Xcode or a sideloading tool. The package itself installs the app under
-`/var/jb/Applications/EasyTier.app`.

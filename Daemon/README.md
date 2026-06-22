@@ -4,7 +4,7 @@
 
 Current scope:
 
-- Create `/var/mobile/Library/Application Support/EasyTier/{runtime,logs}`.
+- Create `/var/jb/var/lib/easytier/{runtime,logs}`.
 - Listen on `127.0.0.1:37657`.
 - Accept newline-delimited JSON IPC.
 - Implement read-only `ping`, `status`, and `tailLog`.

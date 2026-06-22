@@ -1,11 +1,14 @@
 #!/bin/sh
 set -e
 
-PLIST="/var/jb/Library/LaunchDaemons/com.zeroninx.easytierd.plist"
-LABEL="com.zeroninx.easytierd"
+PLIST="/var/jb/Library/LaunchDaemons/com.zeroninex.easytierd.plist"
+LABEL="com.zeroninex.easytierd"
 JOB="system/$LABEL"
-SOCKET="/var/mobile/Library/Application Support/EasyTier/runtime/easytierd.sock"
-PKG_LOG="/var/mobile/Library/Application Support/EasyTier/logs/package.log"
+LEGACY_LABEL="com.zeroninx.easytierd"
+LEGACY_JOB="system/$LEGACY_LABEL"
+LEGACY_PLIST="/var/jb/Library/LaunchDaemons/$LEGACY_LABEL.plist"
+SOCKET="/var/jb/var/lib/easytier/runtime/easytierd.sock"
+PKG_LOG="/var/jb/var/lib/easytier/logs/package.log"
 
 log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') prerm: $*" >> "$PKG_LOG"
@@ -31,6 +34,10 @@ if [ -n "$LAUNCHCTL" ]; then
     run_logged "$LAUNCHCTL" bootout "$JOB"
     if [ -f "$PLIST" ]; then
         run_logged "$LAUNCHCTL" bootout system "$PLIST"
+    fi
+    run_logged "$LAUNCHCTL" bootout "$LEGACY_JOB"
+    if [ -f "$LEGACY_PLIST" ]; then
+        run_logged "$LAUNCHCTL" bootout system "$LEGACY_PLIST"
     fi
 fi
 

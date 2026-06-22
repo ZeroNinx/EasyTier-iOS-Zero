@@ -6,7 +6,7 @@ EasyTier for iOS 15+ rootless jailbreak environments.
 
 ### Overview
 
-This repository provides an iOS client package for jailbroken devices, with a SwiftUI app and the `easytierd` runtime daemon packaged as a rootless `.deb`.
+This repository provides an iOS client package for jailbroken devices, with a jailbreak desktop app and the `easytierd` runtime daemon packaged as a rootless `.deb`.
 
 ### Build
 
@@ -23,13 +23,13 @@ ci_scripts/ci_post_clone.sh
 Build the app, daemon, and rootless deb package:
 
 ```sh
-CONFIGURATION=Release VERSION=0.1.19 Packaging/deb/scripts/build_full_deb.sh
+VERSION=0.1.19 Packaging/deb/scripts/build_full_deb.sh
 ```
 
 `CONFIGURATION` defaults to `Debug`, and `VERSION` defaults to the package version used by the deb scripts. The output is written to:
 
 ```text
-Packaging/deb/dist/com.zeroninx.easytier_${VERSION}_iphoneos-arm64.deb
+Packaging/deb/dist/com.zeroninex.easytier_${VERSION}_iphoneos-arm64.deb
 ```
 
 To package existing iOS arm64 build products instead of running the full build:
@@ -40,7 +40,7 @@ APP_PATH=/path/to/EasyTier.app DAEMON_BIN=/path/to/easytierd VERSION=0.1.19 Pack
 
 ### Installation
 
-Install the generated `.deb` in a rootless jailbreak environment. Before installing, remove any EasyTier app installed by Xcode or a sideloading tool with the same bundle identifier.
+Install the generated `.deb` in a rootless jailbreak environment. The desktop entry is installed as a jailbreak app under `/var/jb/Applications/EasyTier.app`; runtime data is kept under `/var/jb/var/lib/easytier`.
 
 ### Status
 

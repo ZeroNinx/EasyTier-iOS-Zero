@@ -12,8 +12,8 @@ use std::{
 
 use ipc::{handle_request, Response, RuntimeState};
 
-const MOBILE_UID: libc::uid_t = 501;
-const MOBILE_GID: libc::gid_t = 501;
+const ROOT_UID: libc::uid_t = 0;
+const ROOT_GID: libc::gid_t = 0;
 const DEFAULT_IPC_ADDR: &str = "127.0.0.1:37657";
 
 fn main() {
@@ -91,7 +91,7 @@ impl Default for RuntimePaths {
     fn default() -> Self {
         let base = std::env::var_os("EASYTIER_BASE_DIR")
             .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from("/var/mobile/Library/Application Support/EasyTier"));
+            .unwrap_or_else(|| PathBuf::from("/var/jb/var/lib/easytier"));
         let runtime = base.join("runtime");
         let logs = base.join("logs");
         let log = logs.join("easytierd.log");
@@ -109,9 +109,9 @@ impl RuntimePaths {
         fs::create_dir_all(&self.base)?;
         fs::create_dir_all(&self.runtime)?;
         fs::create_dir_all(&self.logs)?;
-        let _ = chown_mobile(&self.base);
-        let _ = chown_mobile(&self.runtime);
-        let _ = chown_mobile(&self.logs);
+        let _ = chown_root(&self.base);
+        let _ = chown_root(&self.runtime);
+        let _ = chown_root(&self.logs);
         fs::set_permissions(&self.base, fs::Permissions::from_mode(0o700))?;
         fs::set_permissions(&self.runtime, fs::Permissions::from_mode(0o700))?;
         fs::set_permissions(&self.logs, fs::Permissions::from_mode(0o700))?;
@@ -124,17 +124,17 @@ impl RuntimePaths {
             .write(true)
             .truncate(true)
             .open(&self.log)?;
-        let _ = chown_mobile(&self.log);
+        let _ = chown_root(&self.log);
         fs::set_permissions(&self.log, fs::Permissions::from_mode(0o600))
     }
 }
 
-fn chown_mobile(path: &PathBuf) -> std::io::Result<()> {
+fn chown_root(path: &PathBuf) -> std::io::Result<()> {
     use std::{ffi::CString, io};
 
     let c_path = CString::new(path.as_os_str().as_encoded_bytes())
         .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "path contains null byte"))?;
-    let result = unsafe { libc::chown(c_path.as_ptr(), MOBILE_UID, MOBILE_GID) };
+    let result = unsafe { libc::chown(c_path.as_ptr(), ROOT_UID, ROOT_GID) };
     if result == 0 {
         Ok(())
     } else {

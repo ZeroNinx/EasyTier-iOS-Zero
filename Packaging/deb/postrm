@@ -1,7 +1,55 @@
 #!/bin/sh
 set -e
 
+BASE="/var/jb/var/lib/easytier"
+ACTION="${1:-remove}"
 APP="/var/jb/Applications/EasyTier.app"
+PLIST="/var/jb/Library/LaunchDaemons/com.zeroninex.easytierd.plist"
+LEGACY_PLIST="/var/jb/Library/LaunchDaemons/com.zeroninx.easytierd.plist"
+LEGACY_MOBILE_BASE="/var/mobile/Library/Application Support/EasyTier"
+MOBILE_IDENTIFIERS="com.zeroninex.easytier com.zeroninx.easytier group.com.zeroninex.easytier group.com.zeroninx.easytier"
+
+plist_contains_identifier() {
+    plist="$1"
+    identifier="$2"
+
+    if command -v plutil >/dev/null 2>&1 && plutil -p "$plist" 2>/dev/null | grep -Fq "\"$identifier\""; then
+        return 0
+    fi
+
+    if command -v strings >/dev/null 2>&1 && strings "$plist" 2>/dev/null | grep -qx "$identifier"; then
+        return 0
+    fi
+
+    return 1
+}
+
+remove_mobile_containers_for_identifier() {
+    identifier="$1"
+
+    for app in /var/mobile/Containers/Bundle/Application/*/*.app; do
+        [ -d "$app" ] || continue
+        info="$app/Info.plist"
+        [ -f "$info" ] || continue
+        if plist_contains_identifier "$info" "$identifier"; then
+            rm -rf "$(dirname "$app")" || true
+        fi
+    done
+
+    for metadata in /var/mobile/Containers/Data/Application/*/.com.apple.mobile_container_manager.metadata.plist; do
+        [ -f "$metadata" ] || continue
+        if plist_contains_identifier "$metadata" "$identifier"; then
+            rm -rf "$(dirname "$metadata")" || true
+        fi
+    done
+
+    for metadata in /var/mobile/Containers/Shared/AppGroup/*/.com.apple.mobile_container_manager.metadata.plist; do
+        [ -f "$metadata" ] || continue
+        if plist_contains_identifier "$metadata" "$identifier"; then
+            rm -rf "$(dirname "$metadata")" || true
+        fi
+    done
+}
 
 if [ -x /usr/bin/uicache ]; then
     /usr/bin/uicache -p "$APP" || true
@@ -9,7 +57,23 @@ elif [ -x /var/jb/usr/bin/uicache ]; then
     /var/jb/usr/bin/uicache -p "$APP" || true
 fi
 
-# User profiles and logs are intentionally preserved under:
-# /var/mobile/Library/Application Support/EasyTier
+case "$ACTION" in
+    remove|purge|disappear)
+        ;;
+    *)
+        exit 0
+        ;;
+esac
+
+rm -rf "$BASE" "$APP" "$LEGACY_MOBILE_BASE" "$PLIST" "$LEGACY_PLIST" || true
+
+for identifier in $MOBILE_IDENTIFIERS; do
+    remove_mobile_containers_for_identifier "$identifier"
+    if [ -x /usr/bin/uicache ]; then
+        /usr/bin/uicache -u "$identifier" || true
+    elif [ -x /var/jb/usr/bin/uicache ]; then
+        /var/jb/usr/bin/uicache -u "$identifier" || true
+    fi
+done
 
 exit 0
